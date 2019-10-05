@@ -18,6 +18,7 @@ var RuntimeError = /** @class */ (function (_super) {
     function RuntimeError(token, message) {
         var _this = _super.call(this, message) || this;
         _this.token = token;
+        Object.setPrototypeOf(_this, RuntimeError.prototype);
         return _this;
     }
     return RuntimeError;
@@ -25,8 +26,10 @@ var RuntimeError = /** @class */ (function (_super) {
 exports.RuntimeError = RuntimeError;
 var ParseError = /** @class */ (function (_super) {
     __extends(ParseError, _super);
-    function ParseError() {
-        return _super !== null && _super.apply(this, arguments) || this;
+    function ParseError(message) {
+        var _this = _super.call(this, message) || this;
+        Object.setPrototypeOf(_this, ParseError.prototype);
+        return _this;
     }
     return ParseError;
 }(Error));

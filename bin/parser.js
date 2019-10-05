@@ -14,9 +14,36 @@ var Parser = /** @class */ (function () {
     Parser.prototype.parse = function () {
         var statements = [];
         while (!this.isAtEnd()) {
-            statements.push(this.statement());
+            statements.push(this.declaration());
         }
         return statements;
+    };
+    // declaration -> varDecl
+    //              | statment
+    Parser.prototype.declaration = function () {
+        try {
+            if (this.match(tokenType_1["default"].VAR))
+                return this.varDeclaration();
+            return this.statement();
+        }
+        catch (error) {
+            if (error instanceof errors_1.ParseError) {
+                this.synchronize();
+                return null;
+            }
+            // at this point something went really wrong
+            throw error;
+        }
+    };
+    // varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
+    Parser.prototype.varDeclaration = function () {
+        var name = this.consume(tokenType_1["default"].IDENTIFIER, "Expect variable name.");
+        var initializer;
+        if (this.match(tokenType_1["default"].EQUAL)) {
+            initializer = this.expression();
+        }
+        this.consume(tokenType_1["default"].SEMICOLON, "Expect ';' after variable declaration.");
+        return new Stmt.Var(name, initializer);
     };
     // statement -> exprStmt
     //            | printStmt
@@ -73,6 +100,7 @@ var Parser = /** @class */ (function () {
     };
     // primary -> NUMBER | STRING | "false" | "true" | "nil"
     //          | "(" expression ")"
+    //          | IDENTIFIER
     Parser.prototype.primary = function () {
         if (this.match(tokenType_1["default"].FALSE))
             return new Expr.Literal(false);
@@ -82,6 +110,9 @@ var Parser = /** @class */ (function () {
             return new Expr.Literal(null);
         if (this.match(tokenType_1["default"].NUMBER, tokenType_1["default"].STRING)) {
             return new Expr.Literal(this.previous().literal);
+        }
+        if (this.match(tokenType_1["default"].IDENTIFIER)) {
+            return new Expr.Variable(this.previous());
         }
         if (this.match(tokenType_1["default"].LEFT_PAREN)) {
             var expr = this.expression();
@@ -148,7 +179,7 @@ var Parser = /** @class */ (function () {
         this.advance();
     };
     /**
-     * Checks to see if the current token is any of the given types
+     * Checks to see if the current token is any of the given types. Advances if true.
      */
     Parser.prototype.match = function () {
         var types = [];
@@ -156,8 +187,8 @@ var Parser = /** @class */ (function () {
             types[_i] = arguments[_i];
         }
         for (var _a = 0, types_1 = types; _a < types_1.length; _a++) {
-            var type_1 = types_1[_a];
-            if (this.check(type_1)) {
+            var type = types_1[_a];
+            if (this.check(type)) {
                 this.advance();
                 return true;
             }

@@ -50,6 +50,7 @@ function run(src) {
 }
 function report(line, where, message) {
     console.log("[line " + line + "] Error " + where + ": " + message);
+    hadError = true;
 }
 exports.report = report;
 function error(item, message) {

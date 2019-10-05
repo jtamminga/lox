@@ -2,7 +2,6 @@ import Token from "./token";
 import * as Expr from "./expr";
 import Type from './tokenType'
 import * as Lox from "./lox";
-import { type } from "os";
 import { ParseError } from "./errors";
 import * as Stmt from "./statement"
 
@@ -18,10 +17,41 @@ export default class Parser {
     public parse(): Stmt.default[] {
         let statements: Stmt.default[] = []
         while (!this.isAtEnd()) {
-            statements.push(this.statement())
+            statements.push(this.declaration())
         }
 
         return statements
+    }
+
+    // declaration -> varDecl
+    //              | statment
+    private declaration(): Stmt.default {
+        try {
+            if (this.match(Type.VAR)) return this.varDeclaration()
+
+            return this.statement()
+        } catch (error) {
+            if (error instanceof ParseError) {
+                this.synchronize()
+                return null
+            }
+
+            // at this point something went really wrong
+            throw error
+        }
+    }
+
+    // varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
+    private varDeclaration(): Stmt.default {
+        let name = this.consume(Type.IDENTIFIER, "Expect variable name.")
+
+        let initializer: Expr.default
+        if (this.match(Type.EQUAL)) {
+            initializer = this.expression()
+        }
+
+        this.consume(Type.SEMICOLON, "Expect ';' after variable declaration.")
+        return new Stmt.Var(name, initializer)
     }
 
     // statement -> exprStmt
@@ -89,6 +119,7 @@ export default class Parser {
 
     // primary -> NUMBER | STRING | "false" | "true" | "nil"
     //          | "(" expression ")"
+    //          | IDENTIFIER
     private primary(): Expr.default {
         if (this.match(Type.FALSE)) return new Expr.Literal(false)
         if (this.match(Type.TRUE)) return new Expr.Literal(true)
@@ -96,6 +127,10 @@ export default class Parser {
 
         if (this.match(Type.NUMBER, Type.STRING)) {
             return new Expr.Literal(this.previous().literal)
+        }
+
+        if (this.match(Type.IDENTIFIER)) {
+            return new Expr.Variable(this.previous())
         }
 
         if (this.match(Type.LEFT_PAREN)) {
@@ -142,7 +177,7 @@ export default class Parser {
      * @param token The token that is causing the error
      * @param message The error message
      */
-    private error(token: Token, message: string): Error {
+    private error(token: Token, message: string): ParseError {
         Lox.error(token, message)
         return new ParseError()
     }
@@ -174,7 +209,7 @@ export default class Parser {
     }
 
     /**
-     * Checks to see if the current token is any of the given types
+     * Checks to see if the current token is any of the given types. Advances if true.
      */
     private match(...types: Type[]): boolean {
         for (const type of types) {

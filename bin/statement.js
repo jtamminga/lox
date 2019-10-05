@@ -45,4 +45,22 @@ var Print = /** @class */ (function (_super) {
     return Print;
 }(Stmt));
 exports.Print = Print;
+/**
+ * Represents a variable with initialization
+ * var -> "var" IDENTIFIER "=" expression ";"
+ */
+var Var = /** @class */ (function (_super) {
+    __extends(Var, _super);
+    function Var(name, initializer) {
+        var _this = _super.call(this) || this;
+        _this.name = name;
+        _this.initializer = initializer;
+        return _this;
+    }
+    Var.prototype.accept = function (visitor) {
+        return visitor.visitVarStmt(this);
+    };
+    return Var;
+}(Stmt));
+exports.Var = Var;
 //# sourceMappingURL=statement.js.map

@@ -3,8 +3,11 @@ exports.__esModule = true;
 var tokenType_1 = require("./tokenType");
 var errors_1 = require("./errors");
 var lox_1 = require("./lox");
+var environment_1 = require("./environment");
 var Interpreter = /** @class */ (function () {
     function Interpreter() {
+        this.environment = new environment_1["default"]();
+        //#endregion
     }
     Interpreter.prototype.interpret = function (statements) {
         try {
@@ -73,6 +76,9 @@ var Interpreter = /** @class */ (function () {
         }
         return null;
     };
+    Interpreter.prototype.visitVariableStmt = function (expr) {
+        return this.environment.get(expr.name);
+    };
     //
     Interpreter.prototype.visitExpressionStmt = function (stmt) {
         this.evaluate(stmt.expression);
@@ -80,6 +86,13 @@ var Interpreter = /** @class */ (function () {
     Interpreter.prototype.visitPrintStmt = function (stmt) {
         var value = this.evaluate(stmt.expression);
         console.log(value);
+    };
+    Interpreter.prototype.visitVarStmt = function (stmt) {
+        var value;
+        if (stmt.initializer != null) {
+            value = this.evaluate(stmt.initializer);
+        }
+        this.environment.define(stmt.name.lexeme, value);
     };
     //#region Helpers
     Interpreter.prototype.checkNumberOperand = function (operator, operand) {

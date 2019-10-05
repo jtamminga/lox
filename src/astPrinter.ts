@@ -1,6 +1,9 @@
 import * as Expr from "./expr";
 
 export default class AstPrinter implements Expr.Visitor<string> {
+    visitVariableStmt<T>(stmt: Expr.Variable) {
+        throw new Error("Method not implemented.");
+    }
 
     print(expr: Expr.default): string {
         return expr.accept(this)

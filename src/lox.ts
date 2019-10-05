@@ -56,14 +56,15 @@ function run(src: string): void {
 
 export function report(line: number, where: string, message: string): void {
     console.log(`[line ${line}] Error ${where}: ${message}`)
+    hadError = true
 }
 
 export function error(item: Token | number, message: string): void {
     if (item instanceof Token) {
         if (item.type == TokenType.EOF) {
-            report(item.line, " at end", message)
+            report(item.line, "at end", message)
         } else {
-            report(item.line, ` at '${item.lexeme}'`, message)
+            report(item.line, `at '${item.lexeme}'`, message)
         }
     } else {
         report(item, "", message)

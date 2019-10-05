@@ -74,4 +74,21 @@ var Unary = /** @class */ (function (_super) {
     return Unary;
 }(Expr));
 exports.Unary = Unary;
+/**
+ * Represents just a variable without an initialization
+ * variable -> "var" IDENTIFIER ";"
+ */
+var Variable = /** @class */ (function (_super) {
+    __extends(Variable, _super);
+    function Variable(name) {
+        var _this = _super.call(this) || this;
+        _this.name = name;
+        return _this;
+    }
+    Variable.prototype.accept = function (visitor) {
+        return visitor.visitVariableStmt(this);
+    };
+    return Variable;
+}(Expr));
+exports.Variable = Variable;
 //# sourceMappingURL=expr.js.map

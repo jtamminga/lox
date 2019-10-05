@@ -4,8 +4,10 @@ import Type from './tokenType'
 import Token from "./token";
 import { RuntimeError } from "./errors";
 import { runtimeError } from "./lox";
+import Environment from "./environment";
 
 export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void> {
+    private environment: Environment = new Environment()
 
     interpret(statements: Stmt.default[]): void {
         try {
@@ -84,6 +86,10 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return null
     }
 
+    visitVariableStmt(expr: Expr.Variable) {
+        return this.environment.get(expr.name)
+    }
+
     //
 
     visitExpressionStmt(stmt: Stmt.Expression) {
@@ -93,6 +99,15 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
     visitPrintStmt(stmt: Stmt.Print) {
         let value = this.evaluate(stmt.expression)
         console.log(value)
+    }
+
+    visitVarStmt(stmt: Stmt.Var) {
+        let value: any
+        if (stmt.initializer != null) {
+            value = this.evaluate(stmt.initializer)
+        }
+
+        this.environment.define(stmt.name.lexeme, value)
     }
 
     //#region Helpers

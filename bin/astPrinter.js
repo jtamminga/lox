@@ -3,6 +3,9 @@ exports.__esModule = true;
 var AstPrinter = /** @class */ (function () {
     function AstPrinter() {
     }
+    AstPrinter.prototype.visitVariableStmt = function (stmt) {
+        throw new Error("Method not implemented.");
+    };
     AstPrinter.prototype.print = function (expr) {
         return expr.accept(this);
     };
