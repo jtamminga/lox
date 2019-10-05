@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "debug": "tsc --sourceMap --outdir bin src/lox.ts",
+    "test": "node bin/lox.js dist/test.lox",
     "bundle": "webpack"
   },
   "author": "",
@@ -19,6 +21,7 @@
     "webpack-cli": "^3.3.7"
   },
   "dependencies": {
-    "@babel/core": "^7.5.5"
+    "@babel/core": "^7.5.5",
+    "@types/node": "^12.7.8"
   }
 }
