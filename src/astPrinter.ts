@@ -1,12 +1,24 @@
 import * as Expr from "./expr";
 
 export default class AstPrinter implements Expr.Visitor<string> {
-    visitVariableStmt<T>(stmt: Expr.Variable) {
+    print(expr: Expr.default): string {
+        return expr.accept(this)
+    }
+
+    visitCallExpr(expr: Expr.Call): string {
         throw new Error("Method not implemented.");
     }
 
-    print(expr: Expr.default): string {
-        return expr.accept(this)
+    visitLogicalExpr(expr: Expr.Logical): string {
+        throw new Error("Method not implemented.");
+    }
+
+    visitAssignExpr(expr: Expr.Assign): string {
+        throw new Error("Method not implemented.");
+    }
+
+    visitVariableExpr(stmt: Expr.Variable): string {
+        throw new Error("Method not implemented.");
     }
 
     visitBinaryExpr(expr: Expr.Binary): string {

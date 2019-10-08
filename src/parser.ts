@@ -5,6 +5,10 @@ import * as Lox from "./lox";
 import { ParseError } from "./errors";
 import * as Stmt from "./statement"
 
+
+type FunKind = "function" | "kind"
+
+
 export default class Parser {
     private tokens: Token[]
     private current: number = 0
@@ -23,10 +27,12 @@ export default class Parser {
         return statements
     }
 
-    // declaration -> varDecl
+    // declaration -> funDecl
+    //              | varDecl
     //              | statment
     private declaration(): Stmt.default {
         try {
+            if (this.match(Type.FUN)) return this.function("function")
             if (this.match(Type.VAR)) return this.varDeclaration()
 
             return this.statement()
@@ -39,6 +45,31 @@ export default class Parser {
             // at this point something went really wrong
             throw error
         }
+    }
+
+    // function -> IDENTIFIER "(" parameters? ")" block
+    private function(kind: FunKind): Stmt.default {
+        // function name
+        let name = this.consume(Type.IDENTIFIER, `Expect ${kind} name.`)
+        
+        // parameters
+        this.consume(Type.LEFT_PAREN, `Expect '(' after ${kind} name.`)
+        let params: Token[] = []
+        if (!this.check(Type.RIGHT_PAREN)) {
+            do {
+                if (params.length >= 255) {
+                    this.error(this.peek(), "Cannot have more than 255 parameters.")
+                }
+
+                params.push(this.consume(Type.IDENTIFIER, "Expect parameter name."))
+            } while (this.match(Type.COMMA))
+        }
+        this.consume(Type.RIGHT_PAREN, "Expect ')' after parameters")
+
+        // body
+        this.consume(Type.LEFT_BRACE, `Expect '{' before ${kind} body.`)
+        let body = this.block()
+        return new Stmt.Function(name, params, body)
     }
 
     // varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
@@ -55,9 +86,19 @@ export default class Parser {
     }
 
     // statement -> exprStmt
+    //            | forStmt
+    //            | ifStmt
     //            | printStmt
+    //            | returnStmt
+    //            | whileStmt
+    //            | block
     private statement(): Stmt.default {
+        if (this.match(Type.FOR)) return this.forStatement()
+        if (this.match(Type.IF)) return this.ifStatement()
         if (this.match(Type.PRINT)) return this.printStatement()
+        if (this.match(Type.RETURN)) return this.returnStatement()
+        if (this.match(Type.WHILE)) return this.whileStatement()
+        if (this.match(Type.LEFT_BRACE)) return new Stmt.Block(this.block())
 
         return this.expressionStatement()
     }
@@ -69,6 +110,30 @@ export default class Parser {
         return new Stmt.Print(value)
     }
 
+    // returnStmt -> "return" expression? ";"
+    private returnStatement(): Stmt.default {
+        let keyword = this.previous()
+        let value: Expr.default = null
+        if (!this.check(Type.SEMICOLON)) {
+            value = this.expression()
+        }
+
+        this.consume(Type.SEMICOLON, "Expect ';' after return value.")
+        return new Stmt.Return(keyword, value)
+    }
+
+    // block -> "{" declaration "}"
+    private block(): Stmt.default[] {
+        let statements: Stmt.default[] = []
+
+        while (!this.check(Type.RIGHT_BRACE) && !this.isAtEnd()) {
+            statements.push(this.declaration())
+        }
+
+        this.consume(Type.RIGHT_BRACE, "Expect '}' after block.")
+        return statements
+    }
+
     // exprStmt -> expression ";"
     private expressionStatement(): Stmt.default {
         let expr = this.expression()
@@ -76,9 +141,138 @@ export default class Parser {
         return new Stmt.Expression(expr)
     }
 
-    // expression -> equality
+    // ifStatement -> "if" "(" expression ")" statement ( "else" statement )?
+    private ifStatement(): Stmt.default {
+        this.consume(Type.LEFT_PAREN, "Expect '(' after 'if'.")
+        let condition = this.expression()
+        this.consume(Type.RIGHT_PAREN, "Expect ')' after if condition.")
+
+        let thenBranch = this.statement()
+        let elseBranch: Stmt.default = null
+        if (this.match(Type.ELSE)) {
+            elseBranch = this.statement()
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch)
+    }
+
+    // whileStmt -> "while" "(" expression ")" statement
+    private whileStatement(): Stmt.default {
+        this.consume(Type.LEFT_PAREN, "Expect '(' after 'while'.")
+        let condition = this.expression()
+        this.consume(Type.RIGHT_PAREN, "Expect ')' after condition.")
+        let body = this.statement()
+
+        return new Stmt.While(condition, body)
+    }
+
+    // forStmt -> "for" "(" ( varDecl | exprStmt | ";" )
+    //            expression? ";"
+    //            expression? ")" statement
+    private forStatement(): Stmt.default {
+        // Note this technique is desugaring.
+        // This function transforms the for loop to a while loop
+
+        this.consume(Type.LEFT_PAREN, "Expect '(' after 'for'.")
+
+        // var declaration, or expression
+        let initializer: Stmt.default
+        if (this.match(Type.SEMICOLON)) {
+            initializer = null
+        } else if (this.match(Type.VAR)) {
+            initializer = this.varDeclaration()
+        } else {
+            initializer = this.expressionStatement()
+        }
+
+        // condition
+        let condition: Expr.default
+        if (!this.check(Type.SEMICOLON)) {
+            condition = this.expression()
+        }
+        this.consume(Type.SEMICOLON, "Expect ';' after loop condition.")
+
+        // increment
+        let increment: Expr.default
+        if (!this.check(Type.RIGHT_PAREN)) {
+            increment = this.expression()
+        }
+        this.consume(Type.RIGHT_PAREN, "Expect ')' after for clauses.")
+        let body = this.statement()
+
+        // time to desugar :o
+
+        // the body consists of the body
+        // plus the incrementer if any
+        if (increment != null) {
+            body = new Stmt.Block([
+                body,
+                new Stmt.Expression(increment)
+            ])
+        }
+
+        // use a while loop to desugar the for loop
+        if (condition == null) condition = new Expr.Literal(true)
+        body = new Stmt.While(condition, body)
+
+        if (initializer != null) {
+            body = new Stmt.Block([
+                initializer,
+                body
+            ])
+        }
+
+        return body
+    }
+
+    // expression -> assignment
     private expression(): Expr.default {
-        return this.equality()
+        return this.assignment()
+    }
+
+    // asignment -> IDENTIFIER "=" assignment
+    //            | logic_or
+    private assignment(): Expr.default {
+        let expr = this.or()
+
+        if (this.match(Type.EQUAL)) {
+            let equals = this.previous()
+            let value = this.assignment()
+
+            if (expr instanceof Expr.Variable) {
+                return new Expr.Assign(expr.name, value)
+            }
+
+            this.error(equals, "Invalid assignment target.")
+        }
+
+        return expr
+    }
+
+    // logic_or -> logic_and ( "or" logic_and )*
+    private or(): Expr.default {
+        let expr = this.and()
+
+        while (this.match(Type.OR)) {
+            let operator = this.previous()
+            let right = this.and()
+            expr = new Expr.Logical(expr, operator, right)
+        }
+
+        return expr
+    }
+
+    // logic_and -> equality ( "and" equality )*
+    private and(): Expr.default {
+        let expr = this.equality()
+
+        while (this.match(Type.AND)) {
+            let operator = this.previous()
+            let right = this.equality()
+            expr = new Expr.Logical(expr, operator, right)
+        }
+
+        return expr
     }
 
     // equality -> comparison (( "!=" | "==" ) comparison)*
@@ -106,7 +300,7 @@ export default class Parser {
     }
 
     // unary -> ( "!" | "-" ) unary
-    //        | primary
+    //        | call
     private unary(): Expr.default {
         if (this.match(Type.BANG, Type.MINUS)) {
             let operator = this.previous()
@@ -114,7 +308,41 @@ export default class Parser {
             return new Expr.Unary(operator, right)
         }
 
-        return this.primary()
+        return this.call()
+    }
+
+    // call -> primary ( "(" arguments? ")" )*
+    private call(): Expr.default {
+        let expr = this.primary()
+
+        while (true) {
+            if (this.match(Type.LEFT_PAREN)) {
+                expr = this.finishCall(expr)
+            } else {
+                break
+            }
+        }
+
+        return expr
+    }
+
+    // arguments -> expression ( "," expression )*
+    // Note: this also handles the paren tokens too,
+    //       therefore not one-to-one with the grammer
+    private finishCall(callee: Expr.default): Expr.default {
+        let args: Expr.default[] = []
+        if (!this.check(Type.RIGHT_PAREN)) {
+            do {
+                if (args.length >= 255) {
+                    this.error(this.peek(), "Cannot have more than 255 arguments.")
+                }
+                args.push(this.expression())
+            } while (this.match(Type.COMMA));
+        }
+
+        let paren = this.consume(Type.RIGHT_PAREN, "Expect ')' after arguments.")
+
+        return new Expr.Call(callee, paren, args)
     }
 
     // primary -> NUMBER | STRING | "false" | "true" | "nil"
@@ -148,7 +376,7 @@ export default class Parser {
      * @param higherOperator The operator with higher precidence
      */
     private binaryOperator(types: Type[], higherOperator: () => Expr.default): Expr.default {
-        let expr = higherOperator.call(this)
+        let expr: Expr.default = higherOperator.call(this)
 
         while(this.match(...types)) {
             let operator = this.previous()

@@ -63,4 +63,75 @@ var Var = /** @class */ (function (_super) {
     return Var;
 }(Stmt));
 exports.Var = Var;
+var Block = /** @class */ (function (_super) {
+    __extends(Block, _super);
+    function Block(statements) {
+        var _this = _super.call(this) || this;
+        _this.statements = statements;
+        return _this;
+    }
+    Block.prototype.accept = function (visitor) {
+        return visitor.visitBlockStmt(this);
+    };
+    return Block;
+}(Stmt));
+exports.Block = Block;
+var If = /** @class */ (function (_super) {
+    __extends(If, _super);
+    function If(condition, thenBranch, elseBranch) {
+        var _this = _super.call(this) || this;
+        _this.condition = condition;
+        _this.thenBranch = thenBranch;
+        _this.elseBranch = elseBranch;
+        return _this;
+    }
+    If.prototype.accept = function (visitor) {
+        return visitor.visitIfStmt(this);
+    };
+    return If;
+}(Stmt));
+exports.If = If;
+var While = /** @class */ (function (_super) {
+    __extends(While, _super);
+    function While(condition, body) {
+        var _this = _super.call(this) || this;
+        _this.condition = condition;
+        _this.body = body;
+        return _this;
+    }
+    While.prototype.accept = function (visitor) {
+        return visitor.visitWhileStmt(this);
+    };
+    return While;
+}(Stmt));
+exports.While = While;
+var Function = /** @class */ (function (_super) {
+    __extends(Function, _super);
+    function Function(name, params, body) {
+        var _this = _super.call(this) || this;
+        _this.name = name;
+        _this.params = params;
+        _this.body = body;
+        return _this;
+    }
+    Function.prototype.accept = function (visitor) {
+        return visitor.visitFunctionStmt(this);
+    };
+    return Function;
+}(Stmt));
+exports.Function = Function;
+var Return = /** @class */ (function (_super) {
+    __extends(Return, _super);
+    function Return(keyword, value) {
+        var _this = _super.call(this) || this;
+        _this.keyword = keyword;
+        _this.value = value;
+        return _this;
+    }
+    Return.prototype.accept = function (visitor) {
+        return visitor.visitReturnStmt(this);
+    };
+    return Return;
+}(Stmt));
+exports.Return = Return;
 //# sourceMappingURL=statement.js.map

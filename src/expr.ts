@@ -9,7 +9,10 @@ export interface Visitor<T> {
     visitGroupingExpr(grouping: Grouping): T
     visitLiteralExpr(literal: Literal): T
     visitUnaryExpr(unary: Unary): T
-    visitVariableStmt<T>(stmt: Variable)
+    visitVariableExpr(expr: Variable): T
+    visitAssignExpr(expr: Assign): T
+    visitLogicalExpr(expr: Logical): T
+    visitCallExpr(expr: Call): T
 }
 
 export class Binary extends Expr {
@@ -83,6 +86,55 @@ export class Variable extends Expr {
     }
 
     accept<T>(visitor: Visitor<T>): T {
-        return visitor.visitVariableStmt(this)
+        return visitor.visitVariableExpr(this)
+    }
+}
+
+export class Assign extends Expr {
+    name: Token
+    value: Expr
+
+    constructor(name: Token, value: Expr) {
+        super()
+        this.name = name
+        this.value = value
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitAssignExpr(this)
+    }
+}
+
+export class Logical extends Expr {
+    left: Expr
+    operator: Token
+    right: Expr
+
+    constructor(left: Expr, operator: Token, right: Expr) {
+        super()
+        this.left = left
+        this.operator = operator
+        this.right = right
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitLogicalExpr(this)
+    }
+}
+
+export class Call extends Expr {
+    callee: Expr
+    paren: Token
+    arguments: Expr[]
+
+    constructor(callee: Expr, paren: Token, args: Expr[]) {
+        super()
+        this.callee = callee
+        this.paren = paren
+        this.arguments = args
+    }
+    
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitCallExpr(this)
     }
 }

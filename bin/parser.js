@@ -18,10 +18,13 @@ var Parser = /** @class */ (function () {
         }
         return statements;
     };
-    // declaration -> varDecl
+    // declaration -> funDecl
+    //              | varDecl
     //              | statment
     Parser.prototype.declaration = function () {
         try {
+            if (this.match(tokenType_1["default"].FUN))
+                return this["function"]("function");
             if (this.match(tokenType_1["default"].VAR))
                 return this.varDeclaration();
             return this.statement();
@@ -35,6 +38,27 @@ var Parser = /** @class */ (function () {
             throw error;
         }
     };
+    // function -> IDENTIFIER "(" parameters? ")" block
+    Parser.prototype["function"] = function (kind) {
+        // function name
+        var name = this.consume(tokenType_1["default"].IDENTIFIER, "Expect " + kind + " name.");
+        // parameters
+        this.consume(tokenType_1["default"].LEFT_PAREN, "Expect '(' after " + kind + " name.");
+        var params = [];
+        if (!this.check(tokenType_1["default"].RIGHT_PAREN)) {
+            do {
+                if (params.length >= 255) {
+                    this.error(this.peek(), "Cannot have more than 255 parameters.");
+                }
+                params.push(this.consume(tokenType_1["default"].IDENTIFIER, "Expect parameter name."));
+            } while (this.match(tokenType_1["default"].COMMA));
+        }
+        this.consume(tokenType_1["default"].RIGHT_PAREN, "Expect ')' after parameters");
+        // body
+        this.consume(tokenType_1["default"].LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        var body = this.block();
+        return new Stmt.Function(name, params, body);
+    };
     // varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
     Parser.prototype.varDeclaration = function () {
         var name = this.consume(tokenType_1["default"].IDENTIFIER, "Expect variable name.");
@@ -46,10 +70,25 @@ var Parser = /** @class */ (function () {
         return new Stmt.Var(name, initializer);
     };
     // statement -> exprStmt
+    //            | forStmt
+    //            | ifStmt
     //            | printStmt
+    //            | returnStmt
+    //            | whileStmt
+    //            | block
     Parser.prototype.statement = function () {
+        if (this.match(tokenType_1["default"].FOR))
+            return this.forStatement();
+        if (this.match(tokenType_1["default"].IF))
+            return this.ifStatement();
         if (this.match(tokenType_1["default"].PRINT))
             return this.printStatement();
+        if (this.match(tokenType_1["default"].RETURN))
+            return this.returnStatement();
+        if (this.match(tokenType_1["default"].WHILE))
+            return this.whileStatement();
+        if (this.match(tokenType_1["default"].LEFT_BRACE))
+            return new Stmt.Block(this.block());
         return this.expressionStatement();
     };
     // printStmt -> "print" expression ";"
@@ -58,15 +97,140 @@ var Parser = /** @class */ (function () {
         this.consume(tokenType_1["default"].SEMICOLON, "Expect ';' after value.");
         return new Stmt.Print(value);
     };
+    // returnStmt -> "return" expression? ";"
+    Parser.prototype.returnStatement = function () {
+        var keyword = this.previous();
+        var value = null;
+        if (!this.check(tokenType_1["default"].SEMICOLON)) {
+            value = this.expression();
+        }
+        this.consume(tokenType_1["default"].SEMICOLON, "Expect ';' after return value.");
+        return new Stmt.Return(keyword, value);
+    };
+    // block -> "{" declaration "}"
+    Parser.prototype.block = function () {
+        var statements = [];
+        while (!this.check(tokenType_1["default"].RIGHT_BRACE) && !this.isAtEnd()) {
+            statements.push(this.declaration());
+        }
+        this.consume(tokenType_1["default"].RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
+    };
     // exprStmt -> expression ";"
     Parser.prototype.expressionStatement = function () {
         var expr = this.expression();
         this.consume(tokenType_1["default"].SEMICOLON, "Expect ';' after expression.");
         return new Stmt.Expression(expr);
     };
-    // expression -> equality
+    // ifStatement -> "if" "(" expression ")" statement ( "else" statement )?
+    Parser.prototype.ifStatement = function () {
+        this.consume(tokenType_1["default"].LEFT_PAREN, "Expect '(' after 'if'.");
+        var condition = this.expression();
+        this.consume(tokenType_1["default"].RIGHT_PAREN, "Expect ')' after if condition.");
+        var thenBranch = this.statement();
+        var elseBranch = null;
+        if (this.match(tokenType_1["default"].ELSE)) {
+            elseBranch = this.statement();
+        }
+        return new Stmt.If(condition, thenBranch, elseBranch);
+    };
+    // whileStmt -> "while" "(" expression ")" statement
+    Parser.prototype.whileStatement = function () {
+        this.consume(tokenType_1["default"].LEFT_PAREN, "Expect '(' after 'while'.");
+        var condition = this.expression();
+        this.consume(tokenType_1["default"].RIGHT_PAREN, "Expect ')' after condition.");
+        var body = this.statement();
+        return new Stmt.While(condition, body);
+    };
+    // forStmt -> "for" "(" ( varDecl | exprStmt | ";" )
+    //            expression? ";"
+    //            expression? ")" statement
+    Parser.prototype.forStatement = function () {
+        // Note this technique is desugaring.
+        // This function transforms the for loop to a while loop
+        this.consume(tokenType_1["default"].LEFT_PAREN, "Expect '(' after 'for'.");
+        // var declaration, or expression
+        var initializer;
+        if (this.match(tokenType_1["default"].SEMICOLON)) {
+            initializer = null;
+        }
+        else if (this.match(tokenType_1["default"].VAR)) {
+            initializer = this.varDeclaration();
+        }
+        else {
+            initializer = this.expressionStatement();
+        }
+        // condition
+        var condition;
+        if (!this.check(tokenType_1["default"].SEMICOLON)) {
+            condition = this.expression();
+        }
+        this.consume(tokenType_1["default"].SEMICOLON, "Expect ';' after loop condition.");
+        // increment
+        var increment;
+        if (!this.check(tokenType_1["default"].RIGHT_PAREN)) {
+            increment = this.expression();
+        }
+        this.consume(tokenType_1["default"].RIGHT_PAREN, "Expect ')' after for clauses.");
+        var body = this.statement();
+        // time to desugar :o
+        // the body consists of the body
+        // plus the incrementer if any
+        if (increment != null) {
+            body = new Stmt.Block([
+                body,
+                new Stmt.Expression(increment)
+            ]);
+        }
+        // use a while loop to desugar the for loop
+        if (condition == null)
+            condition = new Expr.Literal(true);
+        body = new Stmt.While(condition, body);
+        if (initializer != null) {
+            body = new Stmt.Block([
+                initializer,
+                body
+            ]);
+        }
+        return body;
+    };
+    // expression -> assignment
     Parser.prototype.expression = function () {
-        return this.equality();
+        return this.assignment();
+    };
+    // asignment -> IDENTIFIER "=" assignment
+    //            | logic_or
+    Parser.prototype.assignment = function () {
+        var expr = this.or();
+        if (this.match(tokenType_1["default"].EQUAL)) {
+            var equals = this.previous();
+            var value = this.assignment();
+            if (expr instanceof Expr.Variable) {
+                return new Expr.Assign(expr.name, value);
+            }
+            this.error(equals, "Invalid assignment target.");
+        }
+        return expr;
+    };
+    // logic_or -> logic_and ( "or" logic_and )*
+    Parser.prototype.or = function () {
+        var expr = this.and();
+        while (this.match(tokenType_1["default"].OR)) {
+            var operator = this.previous();
+            var right = this.and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+        return expr;
+    };
+    // logic_and -> equality ( "and" equality )*
+    Parser.prototype.and = function () {
+        var expr = this.equality();
+        while (this.match(tokenType_1["default"].AND)) {
+            var operator = this.previous();
+            var right = this.equality();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+        return expr;
     };
     // equality -> comparison (( "!=" | "==" ) comparison)*
     Parser.prototype.equality = function () {
@@ -89,14 +253,43 @@ var Parser = /** @class */ (function () {
         return this.binaryOperator(operators, this.unary.bind(this));
     };
     // unary -> ( "!" | "-" ) unary
-    //        | primary
+    //        | call
     Parser.prototype.unary = function () {
         if (this.match(tokenType_1["default"].BANG, tokenType_1["default"].MINUS)) {
             var operator = this.previous();
             var right = this.unary();
             return new Expr.Unary(operator, right);
         }
-        return this.primary();
+        return this.call();
+    };
+    // call -> primary ( "(" arguments? ")" )*
+    Parser.prototype.call = function () {
+        var expr = this.primary();
+        while (true) {
+            if (this.match(tokenType_1["default"].LEFT_PAREN)) {
+                expr = this.finishCall(expr);
+            }
+            else {
+                break;
+            }
+        }
+        return expr;
+    };
+    // arguments -> expression ( "," expression )*
+    // Note: this also handles the paren tokens too,
+    //       therefore not one-to-one with the grammer
+    Parser.prototype.finishCall = function (callee) {
+        var args = [];
+        if (!this.check(tokenType_1["default"].RIGHT_PAREN)) {
+            do {
+                if (args.length >= 255) {
+                    this.error(this.peek(), "Cannot have more than 255 arguments.");
+                }
+                args.push(this.expression());
+            } while (this.match(tokenType_1["default"].COMMA));
+        }
+        var paren = this.consume(tokenType_1["default"].RIGHT_PAREN, "Expect ')' after arguments.");
+        return new Expr.Call(callee, paren, args);
     };
     // primary -> NUMBER | STRING | "false" | "true" | "nil"
     //          | "(" expression ")"

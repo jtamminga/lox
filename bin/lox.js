@@ -56,10 +56,10 @@ exports.report = report;
 function error(item, message) {
     if (item instanceof token_1["default"]) {
         if (item.type == tokenType_1["default"].EOF) {
-            report(item.line, " at end", message);
+            report(item.line, "at end", message);
         }
         else {
-            report(item.line, " at '" + item.lexeme + "'", message);
+            report(item.line, "at '" + item.lexeme + "'", message);
         }
     }
     else {

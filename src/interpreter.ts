@@ -5,9 +5,23 @@ import Token from "./token";
 import { RuntimeError } from "./errors";
 import { runtimeError } from "./lox";
 import Environment from "./environment";
+import LoxCallable from "./loxCallable";
+import LoxFunction from "./loxFunction";
+import Return from "./return";
 
 export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void> {
-    private environment: Environment = new Environment()
+    readonly globals: Environment = new Environment()
+    private environment: Environment = this.globals
+
+    constructor() {
+        // this.globals.define("clock")
+        let test: LoxCallable = {
+            arity: () => 0,
+            call: (interpreter: Interpreter, args: any[]) => {
+                return Date.now()
+            }
+        }
+    }
 
     interpret(statements: Stmt.default[]): void {
         try {
@@ -19,9 +33,21 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         }
     }
 
-    private execute(statement: Stmt.default): void {
-        statement.accept(this)
+    executeBlock(statements: Stmt.default[], environment: Environment): void {
+        let previous: Environment = this.environment
+
+        try {
+            this.environment = environment
+
+            for (const statement of statements) {
+                this.execute(statement)
+            }
+        } finally {
+            this.environment = previous
+        }
     }
+
+    //
 
     visitBinaryExpr(binary: Expr.Binary) {
         let left = this.evaluate(binary.left)
@@ -86,8 +112,48 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return null
     }
 
-    visitVariableStmt(expr: Expr.Variable) {
+    visitVariableExpr(expr: Expr.Variable) {
         return this.environment.get(expr.name)
+    }
+
+    visitAssignExpr(expr: Expr.Assign) {
+        let value = this.evaluate(expr.value)
+
+        this.environment.assign(expr.name, value)
+        return value
+    }
+
+    visitLogicalExpr(expr: Expr.Logical) {
+        let left = this.evaluate(expr.left)
+
+        if (expr.operator.type == Type.OR) {
+            if (this.isTruthy(left)) return left
+        } else {
+            if (!this.isTruthy(left)) return left
+        }
+
+        return this.evaluate(expr.right)
+    }
+
+    visitCallExpr(expr: Expr.Call) {
+        let callee = this.evaluate(expr.callee)
+
+        let args = expr.arguments.map(arg =>
+            this.evaluate(arg))
+
+        // not instance of LoxCallable
+        if (!(typeof callee.call === 'function')) {
+            throw new RuntimeError(expr.paren,
+                "Can only call functions and classes.")
+        }
+
+        let func: LoxCallable = <LoxCallable> callee
+        if (args.length != func.arity()) {
+            throw new RuntimeError(expr.paren,
+                `Expected ${func.arity()} arguments but got ${args.length}.`)
+        }
+
+        return func.call(this, args)
     }
 
     //
@@ -96,9 +162,20 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         this.evaluate(stmt.expression)
     }
 
+    visitFunctionStmt(stmt: Stmt.Function) {
+        let func = new LoxFunction(stmt, this.environment)
+        this.environment.define(stmt.name.lexeme, func)
+    }
+
     visitPrintStmt(stmt: Stmt.Print) {
         let value = this.evaluate(stmt.expression)
         console.log(value)
+    }
+
+    visitReturnStmt(stmt: Stmt.Return) {
+        let value: any = null
+        if (stmt.value != null) value = this.evaluate(stmt.value)
+        throw new Return(value)
     }
 
     visitVarStmt(stmt: Stmt.Var) {
@@ -110,7 +187,29 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         this.environment.define(stmt.name.lexeme, value)
     }
 
+    visitBlockStmt(stmt: Stmt.Block) {
+        this.executeBlock(stmt.statements, new Environment(this.environment))
+    }
+
+    visitIfStmt(stmt: Stmt.If) {
+        if (this.isTruthy(this.evaluate(stmt.condition))) {
+            this.execute(stmt.thenBranch)
+        } else if (stmt.elseBranch != null) {
+            this.execute(stmt.elseBranch)
+        }
+    }
+
+    visitWhileStmt(stmt: Stmt.While) {
+        while (this.isTruthy(this.evaluate(stmt.condition))) {
+            this.execute(stmt.body)
+        }
+    }
+
     //#region Helpers
+
+    private execute(statement: Stmt.default): void {
+        statement.accept(this)
+    }
 
     private checkNumberOperand(operator: Token, operand: any): void {
         if (typeof operand === 'number') return

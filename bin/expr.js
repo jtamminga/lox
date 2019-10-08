@@ -86,9 +86,53 @@ var Variable = /** @class */ (function (_super) {
         return _this;
     }
     Variable.prototype.accept = function (visitor) {
-        return visitor.visitVariableStmt(this);
+        return visitor.visitVariableExpr(this);
     };
     return Variable;
 }(Expr));
 exports.Variable = Variable;
+var Assign = /** @class */ (function (_super) {
+    __extends(Assign, _super);
+    function Assign(name, value) {
+        var _this = _super.call(this) || this;
+        _this.name = name;
+        _this.value = value;
+        return _this;
+    }
+    Assign.prototype.accept = function (visitor) {
+        return visitor.visitAssignExpr(this);
+    };
+    return Assign;
+}(Expr));
+exports.Assign = Assign;
+var Logical = /** @class */ (function (_super) {
+    __extends(Logical, _super);
+    function Logical(left, operator, right) {
+        var _this = _super.call(this) || this;
+        _this.left = left;
+        _this.operator = operator;
+        _this.right = right;
+        return _this;
+    }
+    Logical.prototype.accept = function (visitor) {
+        return visitor.visitLogicalExpr(this);
+    };
+    return Logical;
+}(Expr));
+exports.Logical = Logical;
+var Call = /** @class */ (function (_super) {
+    __extends(Call, _super);
+    function Call(callee, paren, args) {
+        var _this = _super.call(this) || this;
+        _this.callee = callee;
+        _this.paren = paren;
+        _this.arguments = args;
+        return _this;
+    }
+    Call.prototype.accept = function (visitor) {
+        return visitor.visitCallExpr(this);
+    };
+    return Call;
+}(Expr));
+exports.Call = Call;
 //# sourceMappingURL=expr.js.map

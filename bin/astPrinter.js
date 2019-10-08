@@ -3,11 +3,20 @@ exports.__esModule = true;
 var AstPrinter = /** @class */ (function () {
     function AstPrinter() {
     }
-    AstPrinter.prototype.visitVariableStmt = function (stmt) {
-        throw new Error("Method not implemented.");
-    };
     AstPrinter.prototype.print = function (expr) {
         return expr.accept(this);
+    };
+    AstPrinter.prototype.visitCallExpr = function (expr) {
+        throw new Error("Method not implemented.");
+    };
+    AstPrinter.prototype.visitLogicalExpr = function (expr) {
+        throw new Error("Method not implemented.");
+    };
+    AstPrinter.prototype.visitAssignExpr = function (expr) {
+        throw new Error("Method not implemented.");
+    };
+    AstPrinter.prototype.visitVariableExpr = function (stmt) {
+        throw new Error("Method not implemented.");
     };
     AstPrinter.prototype.visitBinaryExpr = function (expr) {
         return this.parenthesize(expr.operator.lexeme, expr.left, expr.right);

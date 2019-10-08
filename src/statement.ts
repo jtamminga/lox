@@ -6,9 +6,14 @@ export default abstract class Stmt {
 }
 
 export interface Visitor<T> {
-    visitExpressionStmt<T>(stmt: Expression)
-    visitPrintStmt<T>(stmt: Print)
-    visitVarStmt<T>(stmt: Var)
+    visitExpressionStmt(stmt: Expression): T
+    visitPrintStmt(stmt: Print): T
+    visitVarStmt(stmt: Var): T
+    visitBlockStmt(stmt: Block): T
+    visitIfStmt(stmt: If): T
+    visitWhileStmt(stmt: While): T
+    visitFunctionStmt(stmt: Function): T
+    visitReturnStmt(stmt: Return): T
 }
 
 export class Expression extends Stmt {
@@ -53,5 +58,82 @@ export class Var extends Stmt {
 
     accept<T>(visitor: Visitor<T>): T {
         return visitor.visitVarStmt(this)
+    }
+}
+
+export class Block extends Stmt {
+    statements: Stmt[]
+
+    constructor(statements: Stmt[]) {
+        super()
+        this.statements = statements
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitBlockStmt(this)
+    }
+}
+
+export class If extends Stmt {
+    condition: Expr
+    thenBranch: Stmt
+    elseBranch: Stmt
+
+    constructor(condition: Expr, thenBranch: Stmt, elseBranch: Stmt) {
+        super()
+        this.condition = condition
+        this.thenBranch = thenBranch
+        this.elseBranch = elseBranch
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitIfStmt(this)
+    }
+}
+
+export class While extends Stmt {
+    condition: Expr
+    body: Stmt
+
+    constructor(condition: Expr, body: Stmt) {
+        super()
+        this.condition = condition
+        this.body = body
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitWhileStmt(this)
+    }
+}
+
+export class Function extends Stmt {
+    name: Token
+    params: Token[]
+    body: Stmt[]
+
+    constructor(name: Token, params: Token[], body: Stmt[]) {
+        super()
+        this.name = name
+        this.params = params
+        this.body = body
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitFunctionStmt(this)
+    }
+}
+
+export class Return extends Stmt {
+    keyword: Token
+    value: Expr
+
+    constructor(keyword: Token, value: Expr) {
+        super()
+        this.keyword = keyword
+        this.value = value
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitReturnStmt(this)
     }
 }
