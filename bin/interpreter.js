@@ -10,6 +10,7 @@ var Interpreter = /** @class */ (function () {
     function Interpreter() {
         this.globals = new environment_1["default"]();
         this.environment = this.globals;
+        this.locals = new Map();
         // this.globals.define("clock")
         var test = {
             arity: function () { return 0; },
@@ -41,6 +42,9 @@ var Interpreter = /** @class */ (function () {
         finally {
             this.environment = previous;
         }
+    };
+    Interpreter.prototype.resolve = function (expr, depth) {
+        this.locals.set(expr, depth);
     };
     //
     Interpreter.prototype.visitBinaryExpr = function (binary) {
@@ -97,11 +101,17 @@ var Interpreter = /** @class */ (function () {
         return null;
     };
     Interpreter.prototype.visitVariableExpr = function (expr) {
-        return this.environment.get(expr.name);
+        return this.lookUpVariable(expr.name, expr);
     };
     Interpreter.prototype.visitAssignExpr = function (expr) {
         var value = this.evaluate(expr.value);
-        this.environment.assign(expr.name, value);
+        var distance = this.locals.get(expr);
+        if (distance != null) {
+            this.environment.assignAt(distance, expr.name, value);
+        }
+        else {
+            this.globals.assign(expr.name, value);
+        }
         return value;
     };
     Interpreter.prototype.visitLogicalExpr = function (expr) {
@@ -176,6 +186,15 @@ var Interpreter = /** @class */ (function () {
     //#region Helpers
     Interpreter.prototype.execute = function (statement) {
         statement.accept(this);
+    };
+    Interpreter.prototype.lookUpVariable = function (name, expr) {
+        var distance = this.locals.get(expr);
+        if (distance != null) {
+            return this.environment.getAt(distance, name.lexeme);
+        }
+        else {
+            return this.globals.get(name);
+        }
     };
     Interpreter.prototype.checkNumberOperand = function (operator, operand) {
         if (typeof operand === 'number')

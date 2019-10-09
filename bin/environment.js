@@ -19,6 +19,9 @@ var Environment = /** @class */ (function () {
         }
         throw new errors_1.RuntimeError(name, "Undefined variable " + name.lexeme + ".");
     };
+    Environment.prototype.getAt = function (distance, name) {
+        return this.ancestor(distance).values.get(name);
+    };
     Environment.prototype.assign = function (name, value) {
         if (this.values.has(name.lexeme)) {
             this.values.set(name.lexeme, value);
@@ -29,6 +32,16 @@ var Environment = /** @class */ (function () {
             return;
         }
         throw new errors_1.RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
+    };
+    Environment.prototype.assignAt = function (distance, name, value) {
+        this.ancestor(distance).values.set(name.lexeme, value);
+    };
+    Environment.prototype.ancestor = function (distance) {
+        var environment = this;
+        for (var i = 0; i < distance; i++) {
+            environment = environment.enclosing;
+        }
+        return environment;
     };
     return Environment;
 }());

@@ -7,23 +7,6 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
-            "program": "${workspaceFolder}/index.js",
-            "outFiles": [
-                "${workspaceFolder}/**/*.js"
-            ]
-        },
-
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Webpack",
-            "program": "${workspaceFolder}/dist/lox.js"
-        },
-
-        {
-            "type": "node",
-            "request": "launch",
             "name": "Launch test",
             "program": "${workspaceFolder}/src/lox.ts",
             "outFiles": [

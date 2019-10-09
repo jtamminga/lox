@@ -6,6 +6,7 @@ var token_1 = require("./token");
 var tokenType_1 = require("./tokenType");
 var parser_1 = require("./parser");
 var interpreter_1 = require("./interpreter");
+var resolver_1 = require("./resolver");
 var args = process.argv.slice(2);
 var hadError = false;
 var hadRuntimeError = false;
@@ -44,6 +45,12 @@ function run(src) {
     var tokens = scanner.scanTokens();
     var parser = new parser_1["default"](tokens);
     var statements = parser.parse();
+    // stop if there was a syntax error
+    if (hadError)
+        return;
+    var resolver = new resolver_1["default"](interpreter);
+    resolver.resolve(statements);
+    // stop if there was a resolution error
     if (hadError)
         return;
     interpreter.interpret(statements);

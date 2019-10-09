@@ -6,6 +6,7 @@ import Parser from './parser'
 import AstPrinter from './astPrinter'
 import Interpreter from './interpreter'
 import { RuntimeError } from './errors'
+import Resolver from './resolver'
 
 let args: string[] = process.argv.slice(2)
 let hadError: boolean = false
@@ -49,6 +50,13 @@ function run(src: string): void {
     let parser = new Parser(tokens)
     let statements = parser.parse()
 
+    // stop if there was a syntax error
+    if (hadError) return
+
+    let resolver = new Resolver(interpreter)
+    resolver.resolve(statements)
+
+    // stop if there was a resolution error
     if (hadError) return
 
     interpreter.interpret(statements)

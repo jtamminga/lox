@@ -12,6 +12,7 @@ import Return from "./return";
 export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void> {
     readonly globals: Environment = new Environment()
     private environment: Environment = this.globals
+    private readonly locals: Map<Expr.default, number> = new Map<Expr.default, number>()
 
     constructor() {
         // this.globals.define("clock")
@@ -45,6 +46,10 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         } finally {
             this.environment = previous
         }
+    }
+
+    resolve(expr: Expr.default, depth: number): void {
+        this.locals.set(expr, depth)
     }
 
     //
@@ -113,13 +118,19 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
     }
 
     visitVariableExpr(expr: Expr.Variable) {
-        return this.environment.get(expr.name)
+        return this.lookUpVariable(expr.name, expr)
     }
 
     visitAssignExpr(expr: Expr.Assign) {
         let value = this.evaluate(expr.value)
 
-        this.environment.assign(expr.name, value)
+        let distance = this.locals.get(expr)
+        if (distance != null) {
+            this.environment.assignAt(distance, expr.name, value)
+        } else {
+            this.globals.assign(expr.name, value)
+        }
+
         return value
     }
 
@@ -209,6 +220,15 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
 
     private execute(statement: Stmt.default): void {
         statement.accept(this)
+    }
+
+    private lookUpVariable(name: Token, expr: Expr.default): any {
+        let distance = this.locals.get(expr)
+        if (distance != null) {
+            return this.environment.getAt(distance, name.lexeme)
+        } else {
+            return this.globals.get(name)
+        }
     }
 
     private checkNumberOperand(operator: Token, operand: any): void {
