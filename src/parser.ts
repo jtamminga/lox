@@ -6,7 +6,7 @@ import { ParseError } from "./errors";
 import * as Stmt from "./statement"
 
 
-type FunKind = "function" | "kind"
+type FunKind = "function" | "method"
 
 
 export default class Parser {
@@ -27,11 +27,13 @@ export default class Parser {
         return statements
     }
 
-    // declaration -> funDecl
+    // declaration -> classDecl
+    //              | funDecl
     //              | varDecl
     //              | statment
     private declaration(): Stmt.default {
         try {
+            if (this.match(Type.CLASS)) return this.classDeclaration()
             if (this.match(Type.FUN)) return this.function("function")
             if (this.match(Type.VAR)) return this.varDeclaration()
 
@@ -47,8 +49,23 @@ export default class Parser {
         }
     }
 
+    // classDecl -> "class" IDENTIFIER "{" function* "}"
+    private classDeclaration(): Stmt.default {
+        let name = this.consume(Type.IDENTIFIER, "Expect class name.")
+        this.consume(Type.LEFT_BRACE, "Expect '{' before class body.")
+
+        let methods: Stmt.Function[] = []
+        while (!this.check(Type.RIGHT_BRACE) && !this.isAtEnd()) {
+            methods.push(this.function("method"))
+        }
+
+        this.consume(Type.RIGHT_BRACE, "Expect '}' after class body.")
+
+        return new Stmt.Class(name, methods)
+    }
+
     // function -> IDENTIFIER "(" parameters? ")" block
-    private function(kind: FunKind): Stmt.default {
+    private function(kind: FunKind): Stmt.Function {
         // function name
         let name = this.consume(Type.IDENTIFIER, `Expect ${kind} name.`)
         
@@ -241,6 +258,9 @@ export default class Parser {
 
             if (expr instanceof Expr.Variable) {
                 return new Expr.Assign(expr.name, value)
+            } else if (expr instanceof Expr.Get) {
+                let get = <Expr.Get> expr
+                return new Expr.Set(get.object, get.name, value)
             }
 
             this.error(equals, "Invalid assignment target.")
@@ -311,13 +331,17 @@ export default class Parser {
         return this.call()
     }
 
-    // call -> primary ( "(" arguments? ")" )*
+    // call -> primary ( "(" arguments? ")" | "." IDENTIFIER )*
     private call(): Expr.default {
         let expr = this.primary()
 
         while (true) {
             if (this.match(Type.LEFT_PAREN)) {
                 expr = this.finishCall(expr)
+            } else if (this.match(Type.DOT)) {
+                let name = this.consume(Type.IDENTIFIER,
+                    "Expect property name after '.'.")
+                expr = new Expr.Get(expr, name)
             } else {
                 break
             }

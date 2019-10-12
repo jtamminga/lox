@@ -18,11 +18,14 @@ var Parser = /** @class */ (function () {
         }
         return statements;
     };
-    // declaration -> funDecl
+    // declaration -> classDecl
+    //              | funDecl
     //              | varDecl
     //              | statment
     Parser.prototype.declaration = function () {
         try {
+            if (this.match(tokenType_1["default"].CLASS))
+                return this.classDeclaration();
             if (this.match(tokenType_1["default"].FUN))
                 return this["function"]("function");
             if (this.match(tokenType_1["default"].VAR))
@@ -37,6 +40,17 @@ var Parser = /** @class */ (function () {
             // at this point something went really wrong
             throw error;
         }
+    };
+    // classDecl -> "class" IDENTIFIER "{" function* "}"
+    Parser.prototype.classDeclaration = function () {
+        var name = this.consume(tokenType_1["default"].IDENTIFIER, "Expect class name.");
+        this.consume(tokenType_1["default"].LEFT_BRACE, "Expect '{' before class body.");
+        var methods = [];
+        while (!this.check(tokenType_1["default"].RIGHT_BRACE) && !this.isAtEnd()) {
+            methods.push(this["function"]("method"));
+        }
+        this.consume(tokenType_1["default"].RIGHT_BRACE, "Expect '}' after class body.");
+        return new Stmt.Class(name, methods);
     };
     // function -> IDENTIFIER "(" parameters? ")" block
     Parser.prototype["function"] = function (kind) {
@@ -208,6 +222,10 @@ var Parser = /** @class */ (function () {
             if (expr instanceof Expr.Variable) {
                 return new Expr.Assign(expr.name, value);
             }
+            else if (expr instanceof Expr.Get) {
+                var get = expr;
+                return new Expr.Set(get.object, get.name, value);
+            }
             this.error(equals, "Invalid assignment target.");
         }
         return expr;
@@ -262,12 +280,16 @@ var Parser = /** @class */ (function () {
         }
         return this.call();
     };
-    // call -> primary ( "(" arguments? ")" )*
+    // call -> primary ( "(" arguments? ")" | "." IDENTIFIER )*
     Parser.prototype.call = function () {
         var expr = this.primary();
         while (true) {
             if (this.match(tokenType_1["default"].LEFT_PAREN)) {
                 expr = this.finishCall(expr);
+            }
+            else if (this.match(tokenType_1["default"].DOT)) {
+                var name_1 = this.consume(tokenType_1["default"].IDENTIFIER, "Expect property name after '.'.");
+                expr = new Expr.Get(expr, name_1);
             }
             else {
                 break;

@@ -135,4 +135,33 @@ var Call = /** @class */ (function (_super) {
     return Call;
 }(Expr));
 exports.Call = Call;
+var Get = /** @class */ (function (_super) {
+    __extends(Get, _super);
+    function Get(object, name) {
+        var _this = _super.call(this) || this;
+        _this.object = object;
+        _this.name = name;
+        return _this;
+    }
+    Get.prototype.accept = function (visitor) {
+        return visitor.visitGetExpr(this);
+    };
+    return Get;
+}(Expr));
+exports.Get = Get;
+var Set = /** @class */ (function (_super) {
+    __extends(Set, _super);
+    function Set(object, name, value) {
+        var _this = _super.call(this) || this;
+        _this.object = object;
+        _this.name = name;
+        _this.value = value;
+        return _this;
+    }
+    Set.prototype.accept = function (visitor) {
+        return visitor.visitSetExpr(this);
+    };
+    return Set;
+}(Expr));
+exports.Set = Set;
 //# sourceMappingURL=expr.js.map

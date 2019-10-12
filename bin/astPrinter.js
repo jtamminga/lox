@@ -32,6 +32,12 @@ var AstPrinter = /** @class */ (function () {
     AstPrinter.prototype.visitUnaryExpr = function (expr) {
         return this.parenthesize(expr.operator.lexeme, expr.right);
     };
+    AstPrinter.prototype.visitGetExpr = function (expr) {
+        throw new Error("Method not implemented.");
+    };
+    AstPrinter.prototype.visitSetExpr = function (expr) {
+        throw new Error("Method not implemented.");
+    };
     AstPrinter.prototype.parenthesize = function (name) {
         var exprs = [];
         for (var _i = 1; _i < arguments.length; _i++) {

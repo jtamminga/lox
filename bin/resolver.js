@@ -10,17 +10,6 @@ var Resolver = /** @class */ (function () {
         this.interpreter = interpreter;
     }
     Resolver.prototype.resolve = function (statements) {
-        // if (Array.isArray(statements)) {
-        //     for (const statement of statements) {
-        //         statement.accept(this)
-        //     }
-        // } else {
-        //     if (statements.kind == "Expr") {
-        //         statements.accept(this)
-        //     } else {
-        //         statements.accept(this)
-        //     }
-        // }
         if (statements instanceof Expr["default"]) {
             statements.accept(this);
             return;
@@ -65,6 +54,22 @@ var Resolver = /** @class */ (function () {
         for (var _i = 0, _a = expr.arguments; _i < _a.length; _i++) {
             var arg = _a[_i];
             this.resolve(arg);
+        }
+    };
+    Resolver.prototype.visitGetExpr = function (expr) {
+        this.resolve(expr.object);
+    };
+    Resolver.prototype.visitSetExpr = function (expr) {
+        this.resolve(expr.value);
+        this.resolve(expr.object);
+    };
+    Resolver.prototype.visitClassStmt = function (stmt) {
+        this.declare(stmt.name);
+        this.define(stmt.name);
+        for (var _i = 0, _a = stmt.methods; _i < _a.length; _i++) {
+            var method = _a[_i];
+            var declaration = FunctionType.Method;
+            this.resolveFunction(method, declaration);
         }
     };
     Resolver.prototype.visitExpressionStmt = function (stmt) {
@@ -115,6 +120,23 @@ var Resolver = /** @class */ (function () {
     Resolver.prototype.endScope = function () {
         this.scopes.pop();
     };
+    // 
+    // Variable bindings happen in 2 seperate stages - declaring & defining.
+    //
+    // Consider the following:
+    //   var a = "outer";
+    //   {
+    //       var a = a;
+    //   }
+    //
+    // Three options:
+    // 1) run initializer, then put var in scope
+    //    > this would make the inner a set to "outer"
+    // 2) put var in scope, then run initializer
+    //    > a would just be set to itself (so just nil)
+    // 3) make it an error to reference a variable in its initializer
+    //    > the one we do, because this is most likely a mistake
+    // 
     Resolver.prototype.declare = function (name) {
         if (this.scopes.length == 0)
             return;
@@ -166,5 +188,6 @@ var FunctionType;
 (function (FunctionType) {
     FunctionType[FunctionType["None"] = 0] = "None";
     FunctionType[FunctionType["Function"] = 1] = "Function";
+    FunctionType[FunctionType["Method"] = 2] = "Method";
 })(FunctionType || (FunctionType = {}));
 //# sourceMappingURL=resolver.js.map

@@ -72,6 +72,25 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
         }
     }
 
+    visitGetExpr(expr: Expr.Get): void {
+        this.resolve(expr.object)
+    }
+
+    visitSetExpr(expr: Expr.Set): void {
+        this.resolve(expr.value)
+        this.resolve(expr.object)
+    }
+
+    visitClassStmt(stmt: Stmt.Class): void {
+        this.declare(stmt.name)
+        this.define(stmt.name)
+
+        for (const method of stmt.methods) {
+            let declaration = FunctionType.Method
+            this.resolveFunction(method, declaration)
+        }
+    }
+
     visitExpressionStmt(stmt: Stmt.Expression): void {
         this.resolve(stmt.expression)
     }
@@ -132,6 +151,24 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
         this.scopes.pop()
     }
 
+    // 
+    // Variable bindings happen in 2 seperate stages - declaring & defining.
+    //
+    // Consider the following:
+    //   var a = "outer";
+    //   {
+    //       var a = a;
+    //   }
+    //
+    // Three options:
+    // 1) run initializer, then put var in scope
+    //    > this would make the inner a set to "outer"
+    // 2) put var in scope, then run initializer
+    //    > a would just be set to itself (so just nil)
+    // 3) make it an error to reference a variable in its initializer
+    //    > the one we do, because this is most likely a mistake
+    // 
+
     private declare(name: Token): void {
         if (this.scopes.length == 0) return
 
@@ -189,5 +226,6 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
 
 enum FunctionType {
     None,
-    Function
+    Function,
+    Method
 }

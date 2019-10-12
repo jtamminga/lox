@@ -134,4 +134,19 @@ var Return = /** @class */ (function (_super) {
     return Return;
 }(Stmt));
 exports.Return = Return;
+var Class = /** @class */ (function (_super) {
+    __extends(Class, _super);
+    function Class(name, methods, superclass) {
+        var _this = _super.call(this) || this;
+        _this.name = name;
+        _this.superclass = superclass;
+        _this.methods = methods;
+        return _this;
+    }
+    Class.prototype.accept = function (visitor) {
+        return visitor.visitClassStmt(this);
+    };
+    return Class;
+}(Stmt));
+exports.Class = Class;
 //# sourceMappingURL=statement.js.map

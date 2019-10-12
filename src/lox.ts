@@ -80,6 +80,6 @@ export function error(item: Token | number, message: string): void {
 }
 
 export function runtimeError(error: RuntimeError) {
-    console.error(`${error.message}\n[line ${error.token.line}]`)
+    console.log(`[line ${error.token.line}] ${error.message}`)
     hadRuntimeError = true
 }

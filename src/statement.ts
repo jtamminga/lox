@@ -1,4 +1,4 @@
-import Expr from "./expr";
+import Expr, { Variable } from "./expr";
 import Token from "./token";
 
 export default abstract class Stmt {
@@ -14,6 +14,7 @@ export interface Visitor<T> {
     visitWhileStmt(stmt: While): T
     visitFunctionStmt(stmt: Function): T
     visitReturnStmt(stmt: Return): T
+    visitClassStmt(stmt: Class): T
 }
 
 export class Expression extends Stmt {
@@ -135,5 +136,22 @@ export class Return extends Stmt {
 
     accept<T>(visitor: Visitor<T>): T {
         return visitor.visitReturnStmt(this)
+    }
+}
+
+export class Class extends Stmt {
+    name: Token
+    superclass: Variable
+    methods: Function[]
+
+    constructor(name: Token, methods: Function[], superclass?: Variable) {
+        super()
+        this.name = name
+        this.superclass = superclass
+        this.methods = methods
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitClassStmt(this)
     }
 }

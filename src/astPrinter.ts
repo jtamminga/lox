@@ -38,6 +38,13 @@ export default class AstPrinter implements Expr.Visitor<string> {
         return this.parenthesize(expr.operator.lexeme, expr.right)
     }
 
+    visitGetExpr(expr: Expr.Get): string {
+        throw new Error("Method not implemented.");
+    }
+    visitSetExpr(expr: Expr.Set): string {
+        throw new Error("Method not implemented.");
+    }
+
     private parenthesize(name: string, ...exprs: Expr.default[]): string {
         let text: string = '(' + name
 

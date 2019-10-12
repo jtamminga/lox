@@ -8,6 +8,8 @@ import Environment from "./environment";
 import LoxCallable from "./loxCallable";
 import LoxFunction from "./loxFunction";
 import Return from "./return";
+import LoxClass from "./loxClass";
+import LoxInstance from "./loxInstance";
 
 export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void> {
     readonly globals: Environment = new Environment()
@@ -30,7 +32,11 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
                 this.execute(statement)
             }
         } catch (error) {
-            runtimeError(error)
+            if (error instanceof RuntimeError) {
+                runtimeError(error)
+            } else {
+                throw error
+            }
         }
     }
 
@@ -167,7 +173,41 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return func.call(this, args)
     }
 
-    //
+    visitGetExpr(expr: Expr.Get) {
+        let object = this.evaluate(expr.object)
+        if (object instanceof LoxInstance) {
+            return (<LoxInstance> object).get(expr.name)
+        }
+
+        throw new RuntimeError(expr.name,
+            "Only instances have properties.")
+    }
+
+    visitSetExpr(expr: Expr.Set) {
+        let object = this.evaluate(expr.object)
+
+        if (!(object instanceof LoxInstance)) {
+            throw new RuntimeError(expr.name, "Only instances have fields.")
+        }
+
+        let value = this.evaluate(expr.value)
+        object.set(expr.name, value)
+    }
+
+    // statements
+
+    visitClassStmt(stmt: Stmt.Class) {
+        this.environment.define(stmt.name.lexeme, null)
+
+        let methods = new Map<string, LoxFunction>()
+        for (const method of stmt.methods) {
+            let func = new LoxFunction(method, this.environment)
+            methods.set(method.name.lexeme, func)
+        }
+
+        let klass = new LoxClass(stmt.name.lexeme, methods)
+        this.environment.assign(stmt.name, klass)
+    }
 
     visitExpressionStmt(stmt: Stmt.Expression) {
         this.evaluate(stmt.expression)
@@ -180,7 +220,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
 
     visitPrintStmt(stmt: Stmt.Print) {
         let value = this.evaluate(stmt.expression)
-        console.log(value)
+        console.log(value.toString())
     }
 
     visitReturnStmt(stmt: Stmt.Return) {

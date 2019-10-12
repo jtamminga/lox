@@ -6,6 +6,8 @@ var lox_1 = require("./lox");
 var environment_1 = require("./environment");
 var loxFunction_1 = require("./loxFunction");
 var return_1 = require("./return");
+var loxClass_1 = require("./loxClass");
+var loxInstance_1 = require("./loxInstance");
 var Interpreter = /** @class */ (function () {
     function Interpreter() {
         this.globals = new environment_1["default"]();
@@ -27,7 +29,12 @@ var Interpreter = /** @class */ (function () {
             }
         }
         catch (error) {
-            lox_1.runtimeError(error);
+            if (error instanceof errors_1.RuntimeError) {
+                lox_1.runtimeError(error);
+            }
+            else {
+                throw error;
+            }
         }
     };
     Interpreter.prototype.executeBlock = function (statements, environment) {
@@ -142,7 +149,33 @@ var Interpreter = /** @class */ (function () {
         }
         return func.call(this, args);
     };
-    //
+    Interpreter.prototype.visitGetExpr = function (expr) {
+        var object = this.evaluate(expr.object);
+        if (object instanceof loxInstance_1["default"]) {
+            return object.get(expr.name);
+        }
+        throw new errors_1.RuntimeError(expr.name, "Only instances have properties.");
+    };
+    Interpreter.prototype.visitSetExpr = function (expr) {
+        var object = this.evaluate(expr.object);
+        if (!(object instanceof loxInstance_1["default"])) {
+            throw new errors_1.RuntimeError(expr.name, "Only instances have fields.");
+        }
+        var value = this.evaluate(expr.value);
+        object.set(expr.name, value);
+    };
+    // statements
+    Interpreter.prototype.visitClassStmt = function (stmt) {
+        this.environment.define(stmt.name.lexeme, null);
+        var methods = new Map();
+        for (var _i = 0, _a = stmt.methods; _i < _a.length; _i++) {
+            var method = _a[_i];
+            var func = new loxFunction_1["default"](method, this.environment);
+            methods.set(method.name.lexeme, func);
+        }
+        var klass = new loxClass_1["default"](stmt.name.lexeme, methods);
+        this.environment.assign(stmt.name, klass);
+    };
     Interpreter.prototype.visitExpressionStmt = function (stmt) {
         this.evaluate(stmt.expression);
     };
@@ -152,7 +185,7 @@ var Interpreter = /** @class */ (function () {
     };
     Interpreter.prototype.visitPrintStmt = function (stmt) {
         var value = this.evaluate(stmt.expression);
-        console.log(value);
+        console.log(value.toString());
     };
     Interpreter.prototype.visitReturnStmt = function (stmt) {
         var value = null;

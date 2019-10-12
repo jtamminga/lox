@@ -75,7 +75,7 @@ function error(item, message) {
 }
 exports.error = error;
 function runtimeError(error) {
-    console.error(error.message + "\n[line " + error.token.line + "]");
+    console.log("[line " + error.token.line + "] " + error.message);
     hadRuntimeError = true;
 }
 exports.runtimeError = runtimeError;

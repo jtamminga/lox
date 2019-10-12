@@ -13,6 +13,8 @@ export interface Visitor<T> {
     visitAssignExpr(expr: Assign): T
     visitLogicalExpr(expr: Logical): T
     visitCallExpr(expr: Call): T
+    visitGetExpr(expr: Get): T
+    visitSetExpr(expr: Set): T
 }
 
 export class Binary extends Expr {
@@ -136,5 +138,37 @@ export class Call extends Expr {
     
     accept<T>(visitor: Visitor<T>): T {
         return visitor.visitCallExpr(this)
+    }
+}
+
+export class Get extends Expr {
+    object: Expr
+    name: Token
+
+    constructor(object: Expr, name: Token) {
+        super()
+        this.object = object
+        this.name = name
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitGetExpr(this)
+    }
+}
+
+export class Set extends Expr {
+    object: Expr
+    name: Token
+    value: Expr
+
+    constructor(object: Expr, name: Token, value: Expr) {
+        super()
+        this.object = object
+        this.name = name
+        this.value = value
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitSetExpr(this)
     }
 }
