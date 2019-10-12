@@ -12,7 +12,7 @@ var LoxInstance = /** @class */ (function () {
         }
         var method = this.klass.findMethod(name.lexeme);
         if (method != null)
-            return method;
+            return method.bind(this);
         throw new errors_1.RuntimeError(name, "Undefined property '" + name.lexeme + "'.");
     };
     LoxInstance.prototype.set = function (name, value) {

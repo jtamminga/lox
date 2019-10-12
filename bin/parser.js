@@ -326,6 +326,8 @@ var Parser = /** @class */ (function () {
         if (this.match(tokenType_1["default"].NUMBER, tokenType_1["default"].STRING)) {
             return new Expr.Literal(this.previous().literal);
         }
+        if (this.match(tokenType_1["default"].THIS))
+            return new Expr.This(this.previous());
         if (this.match(tokenType_1["default"].IDENTIFIER)) {
             return new Expr.Variable(this.previous());
         }

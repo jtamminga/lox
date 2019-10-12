@@ -164,4 +164,17 @@ var Set = /** @class */ (function (_super) {
     return Set;
 }(Expr));
 exports.Set = Set;
+var This = /** @class */ (function (_super) {
+    __extends(This, _super);
+    function This(keyword) {
+        var _this = _super.call(this) || this;
+        _this.keyword = keyword;
+        return _this;
+    }
+    This.prototype.accept = function (visitor) {
+        return visitor.visitThisExpr(this);
+    };
+    return This;
+}(Expr));
+exports.This = This;
 //# sourceMappingURL=expr.js.map

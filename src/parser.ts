@@ -381,6 +381,8 @@ export default class Parser {
             return new Expr.Literal(this.previous().literal)
         }
 
+        if (this.match(Type.THIS)) return new Expr.This(this.previous())
+
         if (this.match(Type.IDENTIFIER)) {
             return new Expr.Variable(this.previous())
         }

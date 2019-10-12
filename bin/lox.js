@@ -5,6 +5,7 @@ var scanner_1 = require("./scanner");
 var token_1 = require("./token");
 var tokenType_1 = require("./tokenType");
 var parser_1 = require("./parser");
+// import AstPrinter from './astPrinter'
 var interpreter_1 = require("./interpreter");
 var resolver_1 = require("./resolver");
 var args = process.argv.slice(2);

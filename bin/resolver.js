@@ -7,6 +7,7 @@ var Resolver = /** @class */ (function () {
     function Resolver(interpreter) {
         this.scopes = [];
         this.currentFunction = FunctionType.None;
+        this.currentClass = ClassType.None;
         this.interpreter = interpreter;
     }
     Resolver.prototype.resolve = function (statements) {
@@ -63,14 +64,27 @@ var Resolver = /** @class */ (function () {
         this.resolve(expr.value);
         this.resolve(expr.object);
     };
+    Resolver.prototype.visitThisExpr = function (expr) {
+        if (this.currentClass == ClassType.None) {
+            lox_1.error(expr.keyword, "Cannot use 'this' outside of a class.");
+            return;
+        }
+        this.resolveLocal(expr, expr.keyword);
+    };
     Resolver.prototype.visitClassStmt = function (stmt) {
+        var enclosingClass = this.currentClass;
+        this.currentClass = ClassType.Class;
         this.declare(stmt.name);
         this.define(stmt.name);
+        this.beginScope();
+        this.curScope().set("this", true);
         for (var _i = 0, _a = stmt.methods; _i < _a.length; _i++) {
             var method = _a[_i];
             var declaration = FunctionType.Method;
             this.resolveFunction(method, declaration);
         }
+        this.endScope();
+        this.currentClass = enclosingClass;
     };
     Resolver.prototype.visitExpressionStmt = function (stmt) {
         this.resolve(stmt.expression);
@@ -190,4 +204,9 @@ var FunctionType;
     FunctionType[FunctionType["Function"] = 1] = "Function";
     FunctionType[FunctionType["Method"] = 2] = "Method";
 })(FunctionType || (FunctionType = {}));
+var ClassType;
+(function (ClassType) {
+    ClassType[ClassType["None"] = 0] = "None";
+    ClassType[ClassType["Class"] = 1] = "Class";
+})(ClassType || (ClassType = {}));
 //# sourceMappingURL=resolver.js.map

@@ -8,6 +8,7 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
     private readonly interpreter: Interpreter
     private readonly scopes: Map<string, boolean>[] = []
     private currentFunction: FunctionType = FunctionType.None
+    private currentClass: ClassType = ClassType.None
 
     constructor(interpreter: Interpreter) {
         this.interpreter = interpreter
@@ -81,14 +82,38 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
         this.resolve(expr.object)
     }
 
+    visitThisExpr(expr: Expr.This): void {
+        if (this.currentClass == ClassType.None) {
+            error(expr.keyword,
+                "Cannot use 'this' outside of a class.")
+            return
+        }
+
+        this.resolveLocal(expr, expr.keyword)
+    }
+
     visitClassStmt(stmt: Stmt.Class): void {
+        let enclosingClass = this.currentClass
+        this.currentClass = ClassType.Class
+
         this.declare(stmt.name)
         this.define(stmt.name)
 
+        this.beginScope()
+        this.curScope().set("this", true)
+
         for (const method of stmt.methods) {
             let declaration = FunctionType.Method
+            if (method.name.lexeme == "init") {
+                declaration = FunctionType.Initializer
+            }
+
             this.resolveFunction(method, declaration)
         }
+
+        this.endScope()
+
+        this.currentClass = enclosingClass
     }
 
     visitExpressionStmt(stmt: Stmt.Expression): void {
@@ -137,6 +162,11 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
         }
 
         if (stmt.value != null) {
+            if (this.currentFunction == FunctionType.Initializer) {
+                error(stmt.keyword,
+                    "Cannot return a value from an initializer.")
+            }
+
             this.resolve(stmt.value)
         }
     }
@@ -191,7 +221,7 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
      * @param expr The expression representing the variable
      * @param name The variable token
      */
-    private resolveLocal(expr: Expr.Variable, name: Token): void {
+    private resolveLocal(expr: Expr.default, name: Token): void {
         for (let i = this.scopes.length - 1; i >= 0; i--) {
             if (this.scopes[i].has(name.lexeme)) {
                 this.interpreter.resolve(expr, this.scopes.length - 1 - i)
@@ -227,5 +257,11 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
 enum FunctionType {
     None,
     Function,
+    Initializer,
     Method
+}
+
+enum ClassType {
+    None,
+    Class
 }

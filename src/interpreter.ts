@@ -194,6 +194,10 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         object.set(expr.name, value)
     }
 
+    visitThisExpr(expr: Expr.This) {
+        return this.lookUpVariable(expr.keyword, expr)
+    }
+
     // statements
 
     visitClassStmt(stmt: Stmt.Class) {
@@ -201,7 +205,8 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
 
         let methods = new Map<string, LoxFunction>()
         for (const method of stmt.methods) {
-            let func = new LoxFunction(method, this.environment)
+            let func = new LoxFunction(method, this.environment,
+                method.name.lexeme == "init")
             methods.set(method.name.lexeme, func)
         }
 
@@ -214,7 +219,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
     }
 
     visitFunctionStmt(stmt: Stmt.Function) {
-        let func = new LoxFunction(stmt, this.environment)
+        let func = new LoxFunction(stmt, this.environment, false)
         this.environment.define(stmt.name.lexeme, func)
     }
 

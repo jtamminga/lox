@@ -3,14 +3,17 @@ import { Function } from './statement'
 import Interpreter from "./interpreter";
 import Environment from "./environment";
 import Return from "./return";
+import LoxInstance from "./loxInstance";
 
 export default class LoxFunction implements LoxCallable {
     private readonly declaration: Function
     private readonly closure: Environment
+    private readonly isInitializer: boolean
 
-    constructor(declaration: Function, closure: Environment) {
+    constructor(declaration: Function, closure: Environment, isInitializer: boolean) {
         this.declaration = declaration
         this.closure = closure
+        this.isInitializer = isInitializer
     }
 
     arity(): number {
@@ -30,11 +33,20 @@ export default class LoxFunction implements LoxCallable {
             interpreter.executeBlock(this.declaration.body, environment)
         } catch (returnVal) {
             if (returnVal instanceof Return) {
+                if (this.isInitializer) return this.closure.getAt(0, "this")
+
                 return returnVal.value
             }
         }
 
+        if (this.isInitializer) return this.closure.getAt(0, "this")
         return null
+    }
+
+    bind(instance: LoxInstance): LoxFunction {
+        let environment = new Environment(this.closure)
+        environment.define("this", instance)
+        return new LoxFunction(this.declaration, environment, this.isInitializer)
     }
 
     toString(): string {

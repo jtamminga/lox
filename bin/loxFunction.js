@@ -25,6 +25,11 @@ var LoxFunction = /** @class */ (function () {
         }
         return null;
     };
+    LoxFunction.prototype.bind = function (instance) {
+        var environment = new environment_1["default"](this.closure);
+        environment.define("this", instance);
+        return new LoxFunction(this.declaration, environment);
+    };
     LoxFunction.prototype.toString = function () {
         return "<fn " + this.declaration.name.lexeme + ">";
     };

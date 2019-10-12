@@ -15,6 +15,7 @@ export interface Visitor<T> {
     visitCallExpr(expr: Call): T
     visitGetExpr(expr: Get): T
     visitSetExpr(expr: Set): T
+    visitThisExpr(expr: This): T
 }
 
 export class Binary extends Expr {
@@ -170,5 +171,18 @@ export class Set extends Expr {
 
     accept<T>(visitor: Visitor<T>): T {
         return visitor.visitSetExpr(this)
+    }
+}
+
+export class This extends Expr { 
+    keyword: Token
+
+    constructor(keyword: Token) {
+        super()
+        this.keyword = keyword
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitThisExpr(this)
     }
 }

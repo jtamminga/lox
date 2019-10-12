@@ -164,6 +164,9 @@ var Interpreter = /** @class */ (function () {
         var value = this.evaluate(expr.value);
         object.set(expr.name, value);
     };
+    Interpreter.prototype.visitThisExpr = function (expr) {
+        return this.lookUpVariable(expr.keyword, expr);
+    };
     // statements
     Interpreter.prototype.visitClassStmt = function (stmt) {
         this.environment.define(stmt.name.lexeme, null);

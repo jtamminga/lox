@@ -13,11 +13,17 @@ export default class LoxClass implements LoxCallable {
     }
 
     arity(): number {
-        return 0
+        let initializer = this.findMethod("init")
+        if (initializer == null) return 0
+        return initializer.arity()
     }
 
     call(interpreter: Interpreter, args: any[]): any {
         let instance = new LoxInstance(this)
+        let initializer = this.findMethod("init")
+        if (initializer != null) {
+            initializer.bind(instance).call(interpreter, args)
+        }
         return instance
     }
 
