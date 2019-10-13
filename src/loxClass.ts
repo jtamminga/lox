@@ -6,10 +6,12 @@ import LoxFunction from "./loxFunction";
 export default class LoxClass implements LoxCallable {
     readonly name: string
     private readonly methods = new Map<string, LoxFunction>()
+    readonly superClass: LoxClass
 
-    constructor(name: string, methods: Map<string, LoxFunction>) {
+    constructor(name: string, methods: Map<string, LoxFunction>, superClass: LoxClass) {
         this.name = name
         this.methods = methods
+        this.superClass = superClass
     }
 
     arity(): number {
@@ -30,6 +32,10 @@ export default class LoxClass implements LoxCallable {
     findMethod(name: string): LoxFunction {
         if (this.methods.has(name)) {
             return this.methods.get(name)
+        }
+
+        if (this.superClass != null) {
+            return this.superClass.findMethod(name)
         }
 
         return null

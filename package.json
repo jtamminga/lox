@@ -6,6 +6,7 @@
   "scripts": {
     "debug": "tsc --sourceMap --outdir bin src/lox.ts",
     "test": "node bin/lox.js dist/test.lox",
+    "build": "tsc --outFile bin/lox.min.js",
     "bundle": "webpack"
   },
   "author": "",

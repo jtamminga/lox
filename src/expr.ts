@@ -5,10 +5,10 @@ export default abstract class Expr {
 }
 
 export interface Visitor<T> {
-    visitBinaryExpr(binary: Binary): T
-    visitGroupingExpr(grouping: Grouping): T
-    visitLiteralExpr(literal: Literal): T
-    visitUnaryExpr(unary: Unary): T
+    visitBinaryExpr(expr: Binary): T
+    visitGroupingExpr(expr: Grouping): T
+    visitLiteralExpr(expr: Literal): T
+    visitUnaryExpr(expr: Unary): T
     visitVariableExpr(expr: Variable): T
     visitAssignExpr(expr: Assign): T
     visitLogicalExpr(expr: Logical): T
@@ -16,12 +16,13 @@ export interface Visitor<T> {
     visitGetExpr(expr: Get): T
     visitSetExpr(expr: Set): T
     visitThisExpr(expr: This): T
+    visitSuperExpr(expr: Super): T
 }
 
 export class Binary extends Expr {
-    left: Expr
-    operator: Token
-    right: Expr
+    readonly left: Expr
+    readonly operator: Token
+    readonly right: Expr
 
     constructor(left: Expr, operator: Token, right: Expr) {
         super()
@@ -36,7 +37,7 @@ export class Binary extends Expr {
 }
 
 export class Grouping extends Expr {
-    expr: Expr
+    readonly expr: Expr
 
     constructor(expr: Expr) {
         super()
@@ -49,7 +50,7 @@ export class Grouping extends Expr {
 }
 
 export class Literal extends Expr {
-    value: any
+    readonly value: any
 
     constructor(value: any) {
         super()
@@ -62,8 +63,8 @@ export class Literal extends Expr {
 }
 
 export class Unary extends Expr {
-    operator: Token
-    right: Expr
+    readonly operator: Token
+    readonly right: Expr
 
     constructor(operator: Token, right: Expr) {
         super()
@@ -81,7 +82,7 @@ export class Unary extends Expr {
  * variable -> "var" IDENTIFIER ";"
  */
 export class Variable extends Expr {
-    name: Token
+    readonly name: Token
 
     constructor(name: Token) {
         super()
@@ -94,8 +95,8 @@ export class Variable extends Expr {
 }
 
 export class Assign extends Expr {
-    name: Token
-    value: Expr
+    readonly name: Token
+    readonly value: Expr
 
     constructor(name: Token, value: Expr) {
         super()
@@ -109,9 +110,9 @@ export class Assign extends Expr {
 }
 
 export class Logical extends Expr {
-    left: Expr
-    operator: Token
-    right: Expr
+    readonly left: Expr
+    readonly operator: Token
+    readonly right: Expr
 
     constructor(left: Expr, operator: Token, right: Expr) {
         super()
@@ -126,9 +127,9 @@ export class Logical extends Expr {
 }
 
 export class Call extends Expr {
-    callee: Expr
-    paren: Token
-    arguments: Expr[]
+    readonly callee: Expr
+    readonly paren: Token
+    readonly arguments: Expr[]
 
     constructor(callee: Expr, paren: Token, args: Expr[]) {
         super()
@@ -143,8 +144,8 @@ export class Call extends Expr {
 }
 
 export class Get extends Expr {
-    object: Expr
-    name: Token
+    readonly object: Expr
+    readonly name: Token
 
     constructor(object: Expr, name: Token) {
         super()
@@ -158,9 +159,9 @@ export class Get extends Expr {
 }
 
 export class Set extends Expr {
-    object: Expr
-    name: Token
-    value: Expr
+    readonly object: Expr
+    readonly name: Token
+    readonly value: Expr
 
     constructor(object: Expr, name: Token, value: Expr) {
         super()
@@ -175,7 +176,7 @@ export class Set extends Expr {
 }
 
 export class This extends Expr { 
-    keyword: Token
+    readonly keyword: Token
 
     constructor(keyword: Token) {
         super()
@@ -184,5 +185,20 @@ export class This extends Expr {
 
     accept<T>(visitor: Visitor<T>): T {
         return visitor.visitThisExpr(this)
+    }
+}
+
+export class Super extends Expr {
+    readonly keyword: Token
+    readonly method: Token
+
+    constructor(keyword: Token, method: Token) {
+        super()
+        this.keyword = keyword
+        this.method = method
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitSuperExpr(this)
     }
 }

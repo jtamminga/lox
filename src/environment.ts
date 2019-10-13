@@ -2,8 +2,8 @@ import Token from "./token"
 import { RuntimeError } from "./errors"
 
 export default class Environment {
-    private enclosing: Environment
-    private values: Map<string, any> = new Map<string, any>()
+    readonly enclosing: Environment
+    private readonly values: Map<string, any> = new Map<string, any>()
 
     constructor(enclosing: Environment = null) {
         this.enclosing = enclosing

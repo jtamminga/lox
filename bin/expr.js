@@ -177,4 +177,18 @@ var This = /** @class */ (function (_super) {
     return This;
 }(Expr));
 exports.This = This;
+var Super = /** @class */ (function (_super) {
+    __extends(Super, _super);
+    function Super(keyword, method) {
+        var _this = _super.call(this) || this;
+        _this.keyword = keyword;
+        _this.method = method;
+        return _this;
+    }
+    Super.prototype.accept = function (visitor) {
+        return visitor.visitSuperExpr(this);
+    };
+    return Super;
+}(Expr));
+exports.Super = Super;
 //# sourceMappingURL=expr.js.map

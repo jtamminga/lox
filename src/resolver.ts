@@ -92,12 +92,42 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
         this.resolveLocal(expr, expr.keyword)
     }
 
+    visitSuperExpr(expr: Expr.Super): void {
+        if (this.currentClass == ClassType.None) {
+            error(expr.keyword,
+                "Cannot use 'super' outside of a class.")
+        } else if (this.currentClass != ClassType.SubClass) {
+            error(expr.keyword,
+                "Cannot use 'super' in a class with no superclass.")
+        }
+
+        this.resolveLocal(expr, expr.keyword)
+    }
+
+    //
+
     visitClassStmt(stmt: Stmt.Class): void {
         let enclosingClass = this.currentClass
         this.currentClass = ClassType.Class
 
         this.declare(stmt.name)
         this.define(stmt.name)
+
+        if (stmt.superClass != null && 
+            stmt.name.lexeme == stmt.superClass.name.lexeme) {
+                error(stmt.superClass.name,
+                    "A class cannot inherit from itself.")
+        }
+
+        if (stmt.superClass != null) {
+            this.currentClass = ClassType.SubClass
+            this.resolve(stmt.superClass)
+        }
+
+        if (stmt.superClass != null) {
+            this.beginScope()
+            this.curScope().set("super", true)
+        }
 
         this.beginScope()
         this.curScope().set("this", true)
@@ -112,6 +142,8 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
         }
 
         this.endScope()
+
+        if (stmt.superClass != null) this.endScope()
 
         this.currentClass = enclosingClass
     }
@@ -263,5 +295,6 @@ enum FunctionType {
 
 enum ClassType {
     None,
-    Class
+    Class,
+    SubClass
 }

@@ -167,23 +167,48 @@ var Interpreter = /** @class */ (function () {
     Interpreter.prototype.visitThisExpr = function (expr) {
         return this.lookUpVariable(expr.keyword, expr);
     };
+    Interpreter.prototype.visitSuperExpr = function (expr) {
+        var distance = this.locals.get(expr);
+        var superClass = this.environment.getAt(distance, "super");
+        // "this" is always one level nearer than "super"'s environment
+        var object = this.environment.getAt(distance - 1, "this");
+        var method = superClass.findMethod(expr.method.lexeme);
+        if (method == null) {
+            throw new errors_1.RuntimeError(expr.method, "Undefined property '" + expr.method.lexeme + "'.");
+        }
+        return method.bind(object);
+    };
     // statements
     Interpreter.prototype.visitClassStmt = function (stmt) {
+        var superClass = null;
+        if (stmt.superClass != null) {
+            superClass = this.evaluate(stmt.superClass);
+            if (!(superClass instanceof loxClass_1["default"])) {
+                throw new errors_1.RuntimeError(stmt.superClass.name, "Superclass must be a class.");
+            }
+        }
         this.environment.define(stmt.name.lexeme, null);
+        if (stmt.superClass != null) {
+            this.environment = new environment_1["default"](this.environment);
+            this.environment.define("super", superClass);
+        }
         var methods = new Map();
         for (var _i = 0, _a = stmt.methods; _i < _a.length; _i++) {
             var method = _a[_i];
-            var func = new loxFunction_1["default"](method, this.environment);
+            var func = new loxFunction_1["default"](method, this.environment, method.name.lexeme == "init");
             methods.set(method.name.lexeme, func);
         }
-        var klass = new loxClass_1["default"](stmt.name.lexeme, methods);
+        var klass = new loxClass_1["default"](stmt.name.lexeme, methods, superClass);
+        if (superClass != null) {
+            this.environment = this.environment.enclosing;
+        }
         this.environment.assign(stmt.name, klass);
     };
     Interpreter.prototype.visitExpressionStmt = function (stmt) {
         this.evaluate(stmt.expression);
     };
     Interpreter.prototype.visitFunctionStmt = function (stmt) {
-        var func = new loxFunction_1["default"](stmt, this.environment);
+        var func = new loxFunction_1["default"](stmt, this.environment, false);
         this.environment.define(stmt.name.lexeme, func);
     };
     Interpreter.prototype.visitPrintStmt = function (stmt) {

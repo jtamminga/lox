@@ -60,7 +60,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
 
     //
 
-    visitBinaryExpr(binary: Expr.Binary) {
+    visitBinaryExpr(binary: Expr.Binary): any {
         let left = this.evaluate(binary.left)
         let right = this.evaluate(binary.right)
 
@@ -101,15 +101,15 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return null
     }
 
-    visitGroupingExpr(grouping: Expr.Grouping) {
+    visitGroupingExpr(grouping: Expr.Grouping): any {
         return this.evaluate(grouping.expr)
     }
 
-    visitLiteralExpr(literal: Expr.Literal) {
+    visitLiteralExpr(literal: Expr.Literal): any {
         return literal.value
     }
 
-    visitUnaryExpr(unary: Expr.Unary) {
+    visitUnaryExpr(unary: Expr.Unary): any {
         let right = this.evaluate(unary.right)
 
         switch (unary.operator.type) {
@@ -123,11 +123,11 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return null
     }
 
-    visitVariableExpr(expr: Expr.Variable) {
+    visitVariableExpr(expr: Expr.Variable): any {
         return this.lookUpVariable(expr.name, expr)
     }
 
-    visitAssignExpr(expr: Expr.Assign) {
+    visitAssignExpr(expr: Expr.Assign): any {
         let value = this.evaluate(expr.value)
 
         let distance = this.locals.get(expr)
@@ -140,7 +140,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return value
     }
 
-    visitLogicalExpr(expr: Expr.Logical) {
+    visitLogicalExpr(expr: Expr.Logical): any {
         let left = this.evaluate(expr.left)
 
         if (expr.operator.type == Type.OR) {
@@ -152,7 +152,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return this.evaluate(expr.right)
     }
 
-    visitCallExpr(expr: Expr.Call) {
+    visitCallExpr(expr: Expr.Call): any {
         let callee = this.evaluate(expr.callee)
 
         let args = expr.arguments.map(arg =>
@@ -173,7 +173,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return func.call(this, args)
     }
 
-    visitGetExpr(expr: Expr.Get) {
+    visitGetExpr(expr: Expr.Get): any {
         let object = this.evaluate(expr.object)
         if (object instanceof LoxInstance) {
             return (<LoxInstance> object).get(expr.name)
@@ -183,7 +183,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
             "Only instances have properties.")
     }
 
-    visitSetExpr(expr: Expr.Set) {
+    visitSetExpr(expr: Expr.Set): any {
         let object = this.evaluate(expr.object)
 
         if (!(object instanceof LoxInstance)) {
@@ -194,14 +194,47 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         object.set(expr.name, value)
     }
 
-    visitThisExpr(expr: Expr.This) {
+    visitThisExpr(expr: Expr.This): any {
         return this.lookUpVariable(expr.keyword, expr)
+    }
+
+    visitSuperExpr(expr: Expr.Super): any {
+        let distance = this.locals.get(expr)
+        let superClass = <LoxClass> this.environment.getAt(
+            distance, "super")
+
+        // "this" is always one level nearer than "super"'s environment
+        let object = <LoxInstance> this.environment.getAt(
+            distance - 1, "this")
+
+        let method = superClass.findMethod(expr.method.lexeme)
+
+        if (method == null) {
+            throw new RuntimeError(expr.method,
+                `Undefined property '${expr.method.lexeme}'.`)
+        }
+
+        return method.bind(object)
     }
 
     // statements
 
-    visitClassStmt(stmt: Stmt.Class) {
+    visitClassStmt(stmt: Stmt.Class): void {
+        let superClass: any = null
+        if (stmt.superClass != null) {
+            superClass = this.evaluate(stmt.superClass)
+            if (!(superClass instanceof LoxClass)) {
+                throw new RuntimeError(stmt.superClass.name,
+                    "Superclass must be a class.")
+            }
+        }
+
         this.environment.define(stmt.name.lexeme, null)
+
+        if (stmt.superClass != null) {
+            this.environment = new Environment(this.environment)
+            this.environment.define("super", superClass)
+        }
 
         let methods = new Map<string, LoxFunction>()
         for (const method of stmt.methods) {
@@ -210,31 +243,37 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
             methods.set(method.name.lexeme, func)
         }
 
-        let klass = new LoxClass(stmt.name.lexeme, methods)
+        let klass = new LoxClass(stmt.name.lexeme, methods,
+            <LoxClass> superClass)
+
+        if (superClass != null) {
+            this.environment = this.environment.enclosing
+        }
+
         this.environment.assign(stmt.name, klass)
     }
 
-    visitExpressionStmt(stmt: Stmt.Expression) {
+    visitExpressionStmt(stmt: Stmt.Expression): void {
         this.evaluate(stmt.expression)
     }
 
-    visitFunctionStmt(stmt: Stmt.Function) {
+    visitFunctionStmt(stmt: Stmt.Function): void {
         let func = new LoxFunction(stmt, this.environment, false)
         this.environment.define(stmt.name.lexeme, func)
     }
 
-    visitPrintStmt(stmt: Stmt.Print) {
+    visitPrintStmt(stmt: Stmt.Print): void {
         let value = this.evaluate(stmt.expression)
         console.log(value.toString())
     }
 
-    visitReturnStmt(stmt: Stmt.Return) {
+    visitReturnStmt(stmt: Stmt.Return): void {
         let value: any = null
         if (stmt.value != null) value = this.evaluate(stmt.value)
         throw new Return(value)
     }
 
-    visitVarStmt(stmt: Stmt.Var) {
+    visitVarStmt(stmt: Stmt.Var): void {
         let value: any
         if (stmt.initializer != null) {
             value = this.evaluate(stmt.initializer)
@@ -243,11 +282,11 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         this.environment.define(stmt.name.lexeme, value)
     }
 
-    visitBlockStmt(stmt: Stmt.Block) {
+    visitBlockStmt(stmt: Stmt.Block): void {
         this.executeBlock(stmt.statements, new Environment(this.environment))
     }
 
-    visitIfStmt(stmt: Stmt.If) {
+    visitIfStmt(stmt: Stmt.If): void {
         if (this.isTruthy(this.evaluate(stmt.condition))) {
             this.execute(stmt.thenBranch)
         } else if (stmt.elseBranch != null) {
@@ -255,7 +294,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         }
     }
 
-    visitWhileStmt(stmt: Stmt.While) {
+    visitWhileStmt(stmt: Stmt.While): void {
         while (this.isTruthy(this.evaluate(stmt.condition))) {
             this.execute(stmt.body)
         }

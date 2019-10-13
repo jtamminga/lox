@@ -49,9 +49,17 @@ export default class Parser {
         }
     }
 
-    // classDecl -> "class" IDENTIFIER "{" function* "}"
+    // classDecl -> "class" IDENTIFIER ( "<" IDENTIFIER )?
+    //              "{" function* "}"
     private classDeclaration(): Stmt.default {
         let name = this.consume(Type.IDENTIFIER, "Expect class name.")
+
+        let superClass: Expr.Variable = null
+        if (this.match(Type.LESS)) {
+            this.consume(Type.IDENTIFIER, "Expect superclass name.")
+            superClass = new Expr.Variable(this.previous())
+        }
+
         this.consume(Type.LEFT_BRACE, "Expect '{' before class body.")
 
         let methods: Stmt.Function[] = []
@@ -61,7 +69,7 @@ export default class Parser {
 
         this.consume(Type.RIGHT_BRACE, "Expect '}' after class body.")
 
-        return new Stmt.Class(name, methods)
+        return new Stmt.Class(name, methods, superClass)
     }
 
     // function -> IDENTIFIER "(" parameters? ")" block
@@ -369,9 +377,9 @@ export default class Parser {
         return new Expr.Call(callee, paren, args)
     }
 
-    // primary -> NUMBER | STRING | "false" | "true" | "nil"
-    //          | "(" expression ")"
-    //          | IDENTIFIER
+    // primary -> NUMBER | STRING | "false" | "true" | "nil" | "this"
+    //          | "(" expression ")" | IDENTIFIER
+    //          | "super" "." IDENTIFIER
     private primary(): Expr.default {
         if (this.match(Type.FALSE)) return new Expr.Literal(false)
         if (this.match(Type.TRUE)) return new Expr.Literal(true)
@@ -379,6 +387,14 @@ export default class Parser {
 
         if (this.match(Type.NUMBER, Type.STRING)) {
             return new Expr.Literal(this.previous().literal)
+        }
+
+        if (this.match(Type.SUPER)) {
+            let keyword = this.previous()
+            this.consume(Type.DOT, "Expect '.' after 'super'.")
+            let method = this.consume(Type.IDENTIFIER,
+                "Expect superclass method name.")
+            return new Expr.Super(keyword, method)
         }
 
         if (this.match(Type.THIS)) return new Expr.This(this.previous())

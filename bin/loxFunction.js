@@ -3,9 +3,10 @@ exports.__esModule = true;
 var environment_1 = require("./environment");
 var return_1 = require("./return");
 var LoxFunction = /** @class */ (function () {
-    function LoxFunction(declaration, closure) {
+    function LoxFunction(declaration, closure, isInitializer) {
         this.declaration = declaration;
         this.closure = closure;
+        this.isInitializer = isInitializer;
     }
     LoxFunction.prototype.arity = function () {
         return this.declaration.params.length;
@@ -20,15 +21,19 @@ var LoxFunction = /** @class */ (function () {
         }
         catch (returnVal) {
             if (returnVal instanceof return_1["default"]) {
+                if (this.isInitializer)
+                    return this.closure.getAt(0, "this");
                 return returnVal.value;
             }
         }
+        if (this.isInitializer)
+            return this.closure.getAt(0, "this");
         return null;
     };
     LoxFunction.prototype.bind = function (instance) {
         var environment = new environment_1["default"](this.closure);
         environment.define("this", instance);
-        return new LoxFunction(this.declaration, environment);
+        return new LoxFunction(this.declaration, environment, this.isInitializer);
     };
     LoxFunction.prototype.toString = function () {
         return "<fn " + this.declaration.name.lexeme + ">";

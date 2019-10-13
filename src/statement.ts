@@ -18,7 +18,7 @@ export interface Visitor<T> {
 }
 
 export class Expression extends Stmt {
-    expression: Expr
+    readonly expression: Expr
 
     constructor(expression: Expr) {
         super()
@@ -31,7 +31,7 @@ export class Expression extends Stmt {
 }
 
 export class Print extends Stmt {
-    expression: Expr
+    readonly expression: Expr
 
     constructor(expression: Expr) {
         super()
@@ -48,8 +48,8 @@ export class Print extends Stmt {
  * var -> "var" IDENTIFIER "=" expression ";"
  */
 export class Var extends Stmt {
-    name: Token
-    initializer: Expr
+    readonly name: Token
+    readonly initializer: Expr
 
     constructor(name: Token, initializer: Expr) {
         super()
@@ -63,7 +63,7 @@ export class Var extends Stmt {
 }
 
 export class Block extends Stmt {
-    statements: Stmt[]
+    readonly statements: Stmt[]
 
     constructor(statements: Stmt[]) {
         super()
@@ -76,9 +76,9 @@ export class Block extends Stmt {
 }
 
 export class If extends Stmt {
-    condition: Expr
-    thenBranch: Stmt
-    elseBranch: Stmt
+    readonly condition: Expr
+    readonly thenBranch: Stmt
+    readonly elseBranch: Stmt
 
     constructor(condition: Expr, thenBranch: Stmt, elseBranch: Stmt) {
         super()
@@ -93,8 +93,8 @@ export class If extends Stmt {
 }
 
 export class While extends Stmt {
-    condition: Expr
-    body: Stmt
+    readonly condition: Expr
+    readonly body: Stmt
 
     constructor(condition: Expr, body: Stmt) {
         super()
@@ -108,9 +108,9 @@ export class While extends Stmt {
 }
 
 export class Function extends Stmt {
-    name: Token
-    params: Token[]
-    body: Stmt[]
+    readonly name: Token
+    readonly params: Token[]
+    readonly body: Stmt[]
 
     constructor(name: Token, params: Token[], body: Stmt[]) {
         super()
@@ -125,8 +125,8 @@ export class Function extends Stmt {
 }
 
 export class Return extends Stmt {
-    keyword: Token
-    value: Expr
+    readonly keyword: Token
+    readonly value: Expr
 
     constructor(keyword: Token, value: Expr) {
         super()
@@ -140,14 +140,14 @@ export class Return extends Stmt {
 }
 
 export class Class extends Stmt {
-    name: Token
-    superclass: Variable
-    methods: Function[]
+    readonly name: Token
+    readonly superClass: Variable
+    readonly methods: Function[]
 
-    constructor(name: Token, methods: Function[], superclass?: Variable) {
+    constructor(name: Token, methods: Function[], superClass?: Variable) {
         super()
         this.name = name
-        this.superclass = superclass
+        this.superClass = superClass
         this.methods = methods
     }
 

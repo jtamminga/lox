@@ -1,7 +1,7 @@
 var path = require('path');
 
 module.exports = {
-    mode: 'development',
+    mode: 'production',
     // Change to your "entry-point".
     entry: './src/lox',
     output: {

@@ -41,16 +41,22 @@ var Parser = /** @class */ (function () {
             throw error;
         }
     };
-    // classDecl -> "class" IDENTIFIER "{" function* "}"
+    // classDecl -> "class" IDENTIFIER ( "<" IDENTIFIER )?
+    //              "{" function* "}"
     Parser.prototype.classDeclaration = function () {
         var name = this.consume(tokenType_1["default"].IDENTIFIER, "Expect class name.");
+        var superClass = null;
+        if (this.match(tokenType_1["default"].LESS)) {
+            this.consume(tokenType_1["default"].IDENTIFIER, "Expect superclass name.");
+            superClass = new Expr.Variable(this.previous());
+        }
         this.consume(tokenType_1["default"].LEFT_BRACE, "Expect '{' before class body.");
         var methods = [];
         while (!this.check(tokenType_1["default"].RIGHT_BRACE) && !this.isAtEnd()) {
             methods.push(this["function"]("method"));
         }
         this.consume(tokenType_1["default"].RIGHT_BRACE, "Expect '}' after class body.");
-        return new Stmt.Class(name, methods);
+        return new Stmt.Class(name, methods, superClass);
     };
     // function -> IDENTIFIER "(" parameters? ")" block
     Parser.prototype["function"] = function (kind) {
@@ -313,9 +319,9 @@ var Parser = /** @class */ (function () {
         var paren = this.consume(tokenType_1["default"].RIGHT_PAREN, "Expect ')' after arguments.");
         return new Expr.Call(callee, paren, args);
     };
-    // primary -> NUMBER | STRING | "false" | "true" | "nil"
-    //          | "(" expression ")"
-    //          | IDENTIFIER
+    // primary -> NUMBER | STRING | "false" | "true" | "nil" | "this"
+    //          | "(" expression ")" | IDENTIFIER
+    //          | "super" "." IDENTIFIER
     Parser.prototype.primary = function () {
         if (this.match(tokenType_1["default"].FALSE))
             return new Expr.Literal(false);
@@ -325,6 +331,12 @@ var Parser = /** @class */ (function () {
             return new Expr.Literal(null);
         if (this.match(tokenType_1["default"].NUMBER, tokenType_1["default"].STRING)) {
             return new Expr.Literal(this.previous().literal);
+        }
+        if (this.match(tokenType_1["default"].SUPER)) {
+            var keyword = this.previous();
+            this.consume(tokenType_1["default"].DOT, "Expect '.' after 'super'.");
+            var method = this.consume(tokenType_1["default"].IDENTIFIER, "Expect superclass method name.");
+            return new Expr.Super(keyword, method);
         }
         if (this.match(tokenType_1["default"].THIS))
             return new Expr.This(this.previous());

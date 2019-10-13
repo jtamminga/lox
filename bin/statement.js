@@ -136,10 +136,10 @@ var Return = /** @class */ (function (_super) {
 exports.Return = Return;
 var Class = /** @class */ (function (_super) {
     __extends(Class, _super);
-    function Class(name, methods, superclass) {
+    function Class(name, methods, superClass) {
         var _this = _super.call(this) || this;
         _this.name = name;
-        _this.superclass = superclass;
+        _this.superClass = superClass;
         _this.methods = methods;
         return _this;
     }

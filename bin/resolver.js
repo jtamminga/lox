@@ -71,19 +71,46 @@ var Resolver = /** @class */ (function () {
         }
         this.resolveLocal(expr, expr.keyword);
     };
+    Resolver.prototype.visitSuperExpr = function (expr) {
+        if (this.currentClass == ClassType.None) {
+            lox_1.error(expr.keyword, "Cannot use 'super' outside of a class.");
+        }
+        else if (this.currentClass != ClassType.SubClass) {
+            lox_1.error(expr.keyword, "Cannot use 'super' in a class with no superclass.");
+        }
+        this.resolveLocal(expr, expr.keyword);
+    };
+    //
     Resolver.prototype.visitClassStmt = function (stmt) {
         var enclosingClass = this.currentClass;
         this.currentClass = ClassType.Class;
         this.declare(stmt.name);
         this.define(stmt.name);
+        if (stmt.superClass != null &&
+            stmt.name.lexeme == stmt.superClass.name.lexeme) {
+            lox_1.error(stmt.superClass.name, "A class cannot inherit from itself.");
+        }
+        if (stmt.superClass != null) {
+            this.currentClass = ClassType.SubClass;
+            this.resolve(stmt.superClass);
+        }
+        if (stmt.superClass != null) {
+            this.beginScope();
+            this.curScope().set("super", true);
+        }
         this.beginScope();
         this.curScope().set("this", true);
         for (var _i = 0, _a = stmt.methods; _i < _a.length; _i++) {
             var method = _a[_i];
             var declaration = FunctionType.Method;
+            if (method.name.lexeme == "init") {
+                declaration = FunctionType.Initializer;
+            }
             this.resolveFunction(method, declaration);
         }
         this.endScope();
+        if (stmt.superClass != null)
+            this.endScope();
         this.currentClass = enclosingClass;
     };
     Resolver.prototype.visitExpressionStmt = function (stmt) {
@@ -124,6 +151,9 @@ var Resolver = /** @class */ (function () {
             lox_1.error(stmt.keyword, "Cannot return when not in function.");
         }
         if (stmt.value != null) {
+            if (this.currentFunction == FunctionType.Initializer) {
+                lox_1.error(stmt.keyword, "Cannot return a value from an initializer.");
+            }
             this.resolve(stmt.value);
         }
     };
@@ -202,11 +232,13 @@ var FunctionType;
 (function (FunctionType) {
     FunctionType[FunctionType["None"] = 0] = "None";
     FunctionType[FunctionType["Function"] = 1] = "Function";
-    FunctionType[FunctionType["Method"] = 2] = "Method";
+    FunctionType[FunctionType["Initializer"] = 2] = "Initializer";
+    FunctionType[FunctionType["Method"] = 3] = "Method";
 })(FunctionType || (FunctionType = {}));
 var ClassType;
 (function (ClassType) {
     ClassType[ClassType["None"] = 0] = "None";
     ClassType[ClassType["Class"] = 1] = "Class";
+    ClassType[ClassType["SubClass"] = 2] = "SubClass";
 })(ClassType || (ClassType = {}));
 //# sourceMappingURL=resolver.js.map
