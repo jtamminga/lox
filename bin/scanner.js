@@ -52,6 +52,12 @@ var Scanner = /** @class */ (function () {
             case '}':
                 this.addToken(tokenType_1["default"].RIGHT_BRACE);
                 break;
+            case '[':
+                this.addToken(tokenType_1["default"].LEFT_SQR);
+                break;
+            case ']':
+                this.addToken(tokenType_1["default"].RIGHT_SQR);
+                break;
             case ',':
                 this.addToken(tokenType_1["default"].COMMA);
                 break;

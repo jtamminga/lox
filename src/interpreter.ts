@@ -1,5 +1,5 @@
 import * as Expr from "./expr";
-import * as Stmt from "./statement"
+import * as Stmt from "./stmt"
 import Type from './tokenType'
 import Token from "./token";
 import { RuntimeError } from "./errors";
@@ -10,6 +10,7 @@ import LoxFunction from "./loxFunction";
 import Return from "./return";
 import LoxClass from "./loxClass";
 import LoxInstance from "./loxInstance";
+import LoxArray from "./loxArray";
 
 export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void> {
     readonly globals: Environment = new Environment()
@@ -192,6 +193,7 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
 
         let value = this.evaluate(expr.value)
         object.set(expr.name, value)
+        return value
     }
 
     visitThisExpr(expr: Expr.This): any {
@@ -215,6 +217,34 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         }
 
         return method.bind(object)
+    }
+
+    visitIndexExpr(expr: Expr.Index): any {
+        let callee = this.evaluate(expr.callee)
+
+        if (!(callee instanceof LoxArray)) {
+            throw new RuntimeError(expr.bracket,
+                "Cannot index this expression.")
+        }
+
+        let index = this.evaluate(expr.index)
+
+        if (typeof index != "number") {
+            throw new RuntimeError(expr.bracket,
+                "Can only use a number to index.")
+        }
+
+        return callee.elements[index]
+    }
+
+    visitArrayLiteralExpr(expr: Expr.ArrayLiteral): any {
+        let values = expr.values.map(v => this.evaluate(v))
+        return new LoxArray(values)
+    }
+
+    visitAssignArrayExpr(expr: Expr.AssignArray): any {
+        let array = this.evaluate(expr.index)
+        let value = this.evaluate(expr.value)
     }
 
     // statements

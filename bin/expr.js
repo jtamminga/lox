@@ -135,6 +135,21 @@ var Call = /** @class */ (function (_super) {
     return Call;
 }(Expr));
 exports.Call = Call;
+var Index = /** @class */ (function (_super) {
+    __extends(Index, _super);
+    function Index(callee, bracket, index) {
+        var _this = _super.call(this) || this;
+        _this.callee = callee;
+        _this.bracket = bracket;
+        _this.index = index;
+        return _this;
+    }
+    Index.prototype.accept = function (visitor) {
+        return visitor.visitIndexExpr(this);
+    };
+    return Index;
+}(Expr));
+exports.Index = Index;
 var Get = /** @class */ (function (_super) {
     __extends(Get, _super);
     function Get(object, name) {
@@ -191,4 +206,18 @@ var Super = /** @class */ (function (_super) {
     return Super;
 }(Expr));
 exports.Super = Super;
+var ArrayLiteral = /** @class */ (function (_super) {
+    __extends(ArrayLiteral, _super);
+    function ArrayLiteral(values, bracket) {
+        var _this = _super.call(this) || this;
+        _this.values = values;
+        _this.bracket = bracket;
+        return _this;
+    }
+    ArrayLiteral.prototype.accept = function (visitor) {
+        return visitor.visitArrayLiteralExpr(this);
+    };
+    return ArrayLiteral;
+}(Expr));
+exports.ArrayLiteral = ArrayLiteral;
 //# sourceMappingURL=expr.js.map

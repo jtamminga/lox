@@ -17,6 +17,9 @@ export interface Visitor<T> {
     visitSetExpr(expr: Set): T
     visitThisExpr(expr: This): T
     visitSuperExpr(expr: Super): T
+    visitIndexExpr(expr: Index): T
+    visitArrayLiteralExpr(expr: ArrayLiteral): T
+    visitAssignArrayExpr(expr: AssignArray)
 }
 
 export class Binary extends Expr {
@@ -143,6 +146,23 @@ export class Call extends Expr {
     }
 }
 
+export class Index extends Expr {
+    readonly callee: Expr
+    readonly bracket: Token
+    readonly index: Expr
+
+    constructor(callee: Expr, bracket: Token, index: Expr) {
+        super()
+        this.callee = callee
+        this.bracket = bracket
+        this.index = index
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitIndexExpr(this)
+    }
+}
+
 export class Get extends Expr {
     readonly object: Expr
     readonly name: Token
@@ -200,5 +220,35 @@ export class Super extends Expr {
 
     accept<T>(visitor: Visitor<T>): T {
         return visitor.visitSuperExpr(this)
+    }
+}
+
+export class ArrayLiteral extends Expr {
+    readonly values: Expr[]
+    readonly bracket: Token
+
+    constructor(values: Expr[], bracket: Token) {
+        super()
+        this.values = values
+        this.bracket = bracket
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitArrayLiteralExpr(this)
+    }
+}
+
+export class AssignArray extends Expr {
+    readonly index: Index
+    readonly value: Expr
+
+    constructor(index: Index, value: Expr) {
+        super()
+        this.index = index
+        this.value = value
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitAssignArrayExpr(this)
     }
 }

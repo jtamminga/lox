@@ -8,6 +8,7 @@ var loxFunction_1 = require("./loxFunction");
 var return_1 = require("./return");
 var loxClass_1 = require("./loxClass");
 var loxInstance_1 = require("./loxInstance");
+var loxArray_1 = require("./loxArray");
 var Interpreter = /** @class */ (function () {
     function Interpreter() {
         this.globals = new environment_1["default"]();
@@ -177,6 +178,22 @@ var Interpreter = /** @class */ (function () {
             throw new errors_1.RuntimeError(expr.method, "Undefined property '" + expr.method.lexeme + "'.");
         }
         return method.bind(object);
+    };
+    Interpreter.prototype.visitIndexExpr = function (expr) {
+        var callee = this.evaluate(expr.callee);
+        if (!(callee instanceof loxArray_1["default"])) {
+            throw new errors_1.RuntimeError(expr.bracket, "Cannot index this expression.");
+        }
+        var index = this.evaluate(expr.index);
+        if (typeof index != "number") {
+            throw new errors_1.RuntimeError(expr.bracket, "Can only use a number to index.");
+        }
+        return callee.elements[index];
+    };
+    Interpreter.prototype.visitArrayLiteralExpr = function (expr) {
+        var _this = this;
+        var values = expr.values.map(function (v) { return _this.evaluate(v); });
+        return new loxArray_1["default"](values);
     };
     // statements
     Interpreter.prototype.visitClassStmt = function (stmt) {

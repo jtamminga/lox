@@ -4,13 +4,13 @@ var Expr = require("./expr");
 var tokenType_1 = require("./tokenType");
 var Lox = require("./lox");
 var errors_1 = require("./errors");
-var Stmt = require("./statement");
+var Stmt = require("./stmt");
 var Parser = /** @class */ (function () {
     function Parser(tokens) {
         this.current = 0;
         this.tokens = tokens;
     }
-    // program -> statement* EOF
+    // program -> declaration* EOF
     Parser.prototype.parse = function () {
         var statements = [];
         while (!this.isAtEnd()) {
@@ -218,7 +218,7 @@ var Parser = /** @class */ (function () {
     Parser.prototype.expression = function () {
         return this.assignment();
     };
-    // asignment -> IDENTIFIER "=" assignment
+    // asignment -> ( call "." )? IDENTIFIER "=" assignment
     //            | logic_or
     Parser.prototype.assignment = function () {
         var expr = this.or();
@@ -286,12 +286,15 @@ var Parser = /** @class */ (function () {
         }
         return this.call();
     };
-    // call -> primary ( "(" arguments? ")" | "." IDENTIFIER )*
+    // call -> primary ( "(" arguments? ")" | "[" expression "]" | "." IDENTIFIER )*
     Parser.prototype.call = function () {
         var expr = this.primary();
         while (true) {
             if (this.match(tokenType_1["default"].LEFT_PAREN)) {
                 expr = this.finishCall(expr);
+            }
+            else if (this.match(tokenType_1["default"].LEFT_SQR)) {
+                expr = this.finishIndex(expr);
             }
             else if (this.match(tokenType_1["default"].DOT)) {
                 var name_1 = this.consume(tokenType_1["default"].IDENTIFIER, "Expect property name after '.'.");
@@ -319,9 +322,16 @@ var Parser = /** @class */ (function () {
         var paren = this.consume(tokenType_1["default"].RIGHT_PAREN, "Expect ')' after arguments.");
         return new Expr.Call(callee, paren, args);
     };
+    // finishing "[" expression "]"
+    Parser.prototype.finishIndex = function (callee) {
+        var index = this.expression();
+        var bracket = this.consume(tokenType_1["default"].RIGHT_SQR, "Expect ']' after expression.");
+        return new Expr.Index(callee, bracket, index);
+    };
     // primary -> NUMBER | STRING | "false" | "true" | "nil" | "this"
     //          | "(" expression ")" | IDENTIFIER
     //          | "super" "." IDENTIFIER
+    //          | "[" arguments? "]"
     Parser.prototype.primary = function () {
         if (this.match(tokenType_1["default"].FALSE))
             return new Expr.Literal(false);
@@ -347,6 +357,19 @@ var Parser = /** @class */ (function () {
             var expr = this.expression();
             this.consume(tokenType_1["default"].RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
+        }
+        if (this.match(tokenType_1["default"].LEFT_SQR)) {
+            var elements = [];
+            if (!this.check(tokenType_1["default"].RIGHT_SQR)) {
+                do {
+                    if (elements.length >= 255) {
+                        this.error(this.peek(), "Cannot have more than 255 elements.");
+                    }
+                    elements.push(this.expression());
+                } while (this.match(tokenType_1["default"].COMMA));
+            }
+            var bracket = this.consume(tokenType_1["default"].RIGHT_SQR, "Expect ']' after array elements.");
+            return new Expr.ArrayLiteral(elements, bracket);
         }
         throw this.error(this.peek(), "Expect expression.");
     };

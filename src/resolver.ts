@@ -1,5 +1,5 @@
 import * as Expr from './expr'
-import * as Stmt from './statement'
+import * as Stmt from './stmt'
 import Interpreter from './interpreter';
 import Token from './token';
 import { error } from './lox';
@@ -102,6 +102,22 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
         }
 
         this.resolveLocal(expr, expr.keyword)
+    }
+
+    visitIndexExpr(expr: Expr.Index): void {
+        this.resolve(expr.callee)
+        this.resolve(expr.index)
+    }
+
+    visitArrayLiteralExpr(expr: Expr.ArrayLiteral): void {
+        for (const value of expr.values) {
+            this.resolve(value)
+        }
+    }
+
+    visitAssignArrayExpr(expr: Expr.AssignArray): void {
+        this.resolve(expr.index)
+        this.resolve(expr.value)
     }
 
     //

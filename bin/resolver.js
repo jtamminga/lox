@@ -1,7 +1,7 @@
 "use strict";
 exports.__esModule = true;
 var Expr = require("./expr");
-var Stmt = require("./statement");
+var Stmt = require("./stmt");
 var lox_1 = require("./lox");
 var Resolver = /** @class */ (function () {
     function Resolver(interpreter) {
@@ -79,6 +79,16 @@ var Resolver = /** @class */ (function () {
             lox_1.error(expr.keyword, "Cannot use 'super' in a class with no superclass.");
         }
         this.resolveLocal(expr, expr.keyword);
+    };
+    Resolver.prototype.visitIndexExpr = function (expr) {
+        this.resolve(expr.callee);
+        this.resolve(expr.index);
+    };
+    Resolver.prototype.visitArrayLiteralExpr = function (expr) {
+        for (var _i = 0, _a = expr.values; _i < _a.length; _i++) {
+            var value = _a[_i];
+            this.resolve(value);
+        }
     };
     //
     Resolver.prototype.visitClassStmt = function (stmt) {

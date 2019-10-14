@@ -3,7 +3,7 @@ import * as Expr from "./expr";
 import Type from './tokenType'
 import * as Lox from "./lox";
 import { ParseError } from "./errors";
-import * as Stmt from "./statement"
+import * as Stmt from "./stmt"
 
 
 type FunKind = "function" | "method"
@@ -17,7 +17,7 @@ export default class Parser {
         this.tokens = tokens
     }
 
-    // program -> statement* EOF
+    // program -> declaration* EOF
     public parse(): Stmt.default[] {
         let statements: Stmt.default[] = []
         while (!this.isAtEnd()) {
@@ -255,7 +255,7 @@ export default class Parser {
         return this.assignment()
     }
 
-    // asignment -> IDENTIFIER "=" assignment
+    // asignment -> ( call "." )? IDENTIFIER "=" assignment
     //            | logic_or
     private assignment(): Expr.default {
         let expr = this.or()
@@ -269,6 +269,8 @@ export default class Parser {
             } else if (expr instanceof Expr.Get) {
                 let get = <Expr.Get> expr
                 return new Expr.Set(get.object, get.name, value)
+            } else if (expr instanceof Expr.Index) {
+                // return new Expr.Set(expr.callee, null, value)
             }
 
             this.error(equals, "Invalid assignment target.")
@@ -339,13 +341,15 @@ export default class Parser {
         return this.call()
     }
 
-    // call -> primary ( "(" arguments? ")" | "." IDENTIFIER )*
+    // call -> primary ( "(" arguments? ")" | "[" expression "]" | "." IDENTIFIER )*
     private call(): Expr.default {
         let expr = this.primary()
 
         while (true) {
             if (this.match(Type.LEFT_PAREN)) {
                 expr = this.finishCall(expr)
+            } else if (this.match(Type.LEFT_SQR)) {
+                expr = this.finishIndex(expr)
             } else if (this.match(Type.DOT)) {
                 let name = this.consume(Type.IDENTIFIER,
                     "Expect property name after '.'.")
@@ -377,9 +381,18 @@ export default class Parser {
         return new Expr.Call(callee, paren, args)
     }
 
+    // finishing "[" expression "]"
+    private finishIndex(callee: Expr.default): Expr.default {
+        let index = this.expression()
+        let bracket = this.consume(Type.RIGHT_SQR, "Expect ']' after expression.")
+
+        return new Expr.Index(callee, bracket, index)
+    }
+
     // primary -> NUMBER | STRING | "false" | "true" | "nil" | "this"
     //          | "(" expression ")" | IDENTIFIER
     //          | "super" "." IDENTIFIER
+    //          | "[" arguments? "]"
     private primary(): Expr.default {
         if (this.match(Type.FALSE)) return new Expr.Literal(false)
         if (this.match(Type.TRUE)) return new Expr.Literal(true)
@@ -407,6 +420,22 @@ export default class Parser {
             let expr = this.expression()
             this.consume(Type.RIGHT_PAREN, "Expect ')' after expression.")
             return new Expr.Grouping(expr)
+        }
+
+        if (this.match(Type.LEFT_SQR)) {
+            let elements = []
+            if (!this.check(Type.RIGHT_SQR)) {
+                do {
+                    if (elements.length >= 255) {
+                        this.error(this.peek(), "Cannot have more than 255 elements.")
+                    }
+                    elements.push(this.expression())
+                } while (this.match(Type.COMMA))
+            }
+
+            let bracket = this.consume(Type.RIGHT_SQR, "Expect ']' after array elements.")
+
+            return new Expr.ArrayLiteral(elements, bracket)
         }
 
         throw this.error(this.peek(), "Expect expression.")

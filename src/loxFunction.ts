@@ -1,5 +1,5 @@
 import LoxCallable from "./loxCallable";
-import { Function } from './statement'
+import { Function } from './stmt'
 import Interpreter from "./interpreter";
 import Environment from "./environment";
 import Return from "./return";
