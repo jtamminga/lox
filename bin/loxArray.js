@@ -22,7 +22,22 @@ var LoxArray = /** @class */ (function (_super) {
         _this.elements = elements;
         return _this;
     }
+    LoxArray.prototype.get = function (name) {
+        switch (name.lexeme) {
+            case "length": return this.elements.length;
+            case "push": return Push(this.elements);
+        }
+    };
+    LoxArray.prototype.toString = function () {
+        return "[" + this.elements.join(',') + "]";
+    };
     return LoxArray;
 }(loxInstance_1["default"]));
 exports["default"] = LoxArray;
+var Push = function (elements) { return ({
+    arity: function () { return 1; },
+    call: function (interpreter, args) {
+        elements.push(args[0]);
+    }
+}); };
 //# sourceMappingURL=loxArray.js.map

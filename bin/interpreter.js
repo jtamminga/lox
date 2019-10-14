@@ -164,6 +164,7 @@ var Interpreter = /** @class */ (function () {
         }
         var value = this.evaluate(expr.value);
         object.set(expr.name, value);
+        return value;
     };
     Interpreter.prototype.visitThisExpr = function (expr) {
         return this.lookUpVariable(expr.keyword, expr);
@@ -179,21 +180,36 @@ var Interpreter = /** @class */ (function () {
         }
         return method.bind(object);
     };
-    Interpreter.prototype.visitIndexExpr = function (expr) {
-        var callee = this.evaluate(expr.callee);
-        if (!(callee instanceof loxArray_1["default"])) {
+    Interpreter.prototype.visitArrayLiteralExpr = function (expr) {
+        var _this = this;
+        var values = expr.elements.map(function (e) { return _this.evaluate(e); });
+        return new loxArray_1["default"](values);
+    };
+    Interpreter.prototype.visitIndexGetExpr = function (expr) {
+        var indexee = this.evaluate(expr.indexee);
+        if (!(indexee instanceof loxArray_1["default"])) {
             throw new errors_1.RuntimeError(expr.bracket, "Cannot index this expression.");
         }
         var index = this.evaluate(expr.index);
         if (typeof index != "number") {
             throw new errors_1.RuntimeError(expr.bracket, "Can only use a number to index.");
         }
-        return callee.elements[index];
+        if (indexee.elements[index] === undefined) {
+            return null;
+        }
+        return indexee.elements[index];
     };
-    Interpreter.prototype.visitArrayLiteralExpr = function (expr) {
-        var _this = this;
-        var values = expr.values.map(function (v) { return _this.evaluate(v); });
-        return new loxArray_1["default"](values);
+    Interpreter.prototype.visitIndexSetExpr = function (expr) {
+        var array = this.evaluate(expr.indexee);
+        if (!(array instanceof loxArray_1["default"])) {
+            throw new errors_1.RuntimeError(expr.bracket, "Variable is not an array.");
+        }
+        var index = this.evaluate(expr.index);
+        if (typeof index != "number") {
+            throw new errors_1.RuntimeError(expr.bracket, "Can only use a number to index.");
+        }
+        var value = this.evaluate(expr.value);
+        array.elements[index] = value;
     };
     // statements
     Interpreter.prototype.visitClassStmt = function (stmt) {
@@ -230,7 +246,12 @@ var Interpreter = /** @class */ (function () {
     };
     Interpreter.prototype.visitPrintStmt = function (stmt) {
         var value = this.evaluate(stmt.expression);
-        console.log(value.toString());
+        if (value === null) {
+            console.log("nil");
+        }
+        else {
+            console.log(value.toString());
+        }
     };
     Interpreter.prototype.visitReturnStmt = function (stmt) {
         var value = null;

@@ -135,21 +135,6 @@ var Call = /** @class */ (function (_super) {
     return Call;
 }(Expr));
 exports.Call = Call;
-var Index = /** @class */ (function (_super) {
-    __extends(Index, _super);
-    function Index(callee, bracket, index) {
-        var _this = _super.call(this) || this;
-        _this.callee = callee;
-        _this.bracket = bracket;
-        _this.index = index;
-        return _this;
-    }
-    Index.prototype.accept = function (visitor) {
-        return visitor.visitIndexExpr(this);
-    };
-    return Index;
-}(Expr));
-exports.Index = Index;
 var Get = /** @class */ (function (_super) {
     __extends(Get, _super);
     function Get(object, name) {
@@ -208,9 +193,9 @@ var Super = /** @class */ (function (_super) {
 exports.Super = Super;
 var ArrayLiteral = /** @class */ (function (_super) {
     __extends(ArrayLiteral, _super);
-    function ArrayLiteral(values, bracket) {
+    function ArrayLiteral(elements, bracket) {
         var _this = _super.call(this) || this;
-        _this.values = values;
+        _this.elements = elements;
         _this.bracket = bracket;
         return _this;
     }
@@ -220,4 +205,35 @@ var ArrayLiteral = /** @class */ (function (_super) {
     return ArrayLiteral;
 }(Expr));
 exports.ArrayLiteral = ArrayLiteral;
+var IndexGet = /** @class */ (function (_super) {
+    __extends(IndexGet, _super);
+    function IndexGet(indexee, bracket, index) {
+        var _this = _super.call(this) || this;
+        _this.indexee = indexee;
+        _this.bracket = bracket;
+        _this.index = index;
+        return _this;
+    }
+    IndexGet.prototype.accept = function (visitor) {
+        return visitor.visitIndexGetExpr(this);
+    };
+    return IndexGet;
+}(Expr));
+exports.IndexGet = IndexGet;
+var IndexSet = /** @class */ (function (_super) {
+    __extends(IndexSet, _super);
+    function IndexSet(indexee, bracket, index, value) {
+        var _this = _super.call(this) || this;
+        _this.indexee = indexee;
+        _this.bracket = bracket;
+        _this.index = index;
+        _this.value = value;
+        return _this;
+    }
+    IndexSet.prototype.accept = function (visitor) {
+        return visitor.visitIndexSetExpr(this);
+    };
+    return IndexSet;
+}(Expr));
+exports.IndexSet = IndexSet;
 //# sourceMappingURL=expr.js.map

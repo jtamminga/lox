@@ -104,18 +104,19 @@ export default class Resolver implements Expr.Visitor<void>, Stmt.Visitor<void> 
         this.resolveLocal(expr, expr.keyword)
     }
 
-    visitIndexExpr(expr: Expr.Index): void {
-        this.resolve(expr.callee)
+    visitIndexGetExpr(expr: Expr.IndexGet): void {
+        this.resolve(expr.indexee)
         this.resolve(expr.index)
     }
 
     visitArrayLiteralExpr(expr: Expr.ArrayLiteral): void {
-        for (const value of expr.values) {
+        for (const value of expr.elements) {
             this.resolve(value)
         }
     }
 
-    visitAssignArrayExpr(expr: Expr.AssignArray): void {
+    visitIndexSetExpr(expr: Expr.IndexSet): void {
+        this.resolve(expr.indexee)
         this.resolve(expr.index)
         this.resolve(expr.value)
     }

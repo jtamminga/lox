@@ -232,6 +232,9 @@ var Parser = /** @class */ (function () {
                 var get = expr;
                 return new Expr.Set(get.object, get.name, value);
             }
+            else if (expr instanceof Expr.IndexGet) {
+                return new Expr.IndexSet(expr, expr.bracket, expr.index, value);
+            }
             this.error(equals, "Invalid assignment target.");
         }
         return expr;
@@ -326,12 +329,12 @@ var Parser = /** @class */ (function () {
     Parser.prototype.finishIndex = function (callee) {
         var index = this.expression();
         var bracket = this.consume(tokenType_1["default"].RIGHT_SQR, "Expect ']' after expression.");
-        return new Expr.Index(callee, bracket, index);
+        return new Expr.IndexGet(callee, bracket, index);
     };
     // primary -> NUMBER | STRING | "false" | "true" | "nil" | "this"
     //          | "(" expression ")" | IDENTIFIER
     //          | "super" "." IDENTIFIER
-    //          | "[" arguments? "]"
+    //          | array
     Parser.prototype.primary = function () {
         if (this.match(tokenType_1["default"].FALSE))
             return new Expr.Literal(false);
@@ -359,19 +362,23 @@ var Parser = /** @class */ (function () {
             return new Expr.Grouping(expr);
         }
         if (this.match(tokenType_1["default"].LEFT_SQR)) {
-            var elements = [];
-            if (!this.check(tokenType_1["default"].RIGHT_SQR)) {
-                do {
-                    if (elements.length >= 255) {
-                        this.error(this.peek(), "Cannot have more than 255 elements.");
-                    }
-                    elements.push(this.expression());
-                } while (this.match(tokenType_1["default"].COMMA));
-            }
-            var bracket = this.consume(tokenType_1["default"].RIGHT_SQR, "Expect ']' after array elements.");
-            return new Expr.ArrayLiteral(elements, bracket);
+            return this.array();
         }
         throw this.error(this.peek(), "Expect expression.");
+    };
+    // array -> "[" arguments? "]"
+    Parser.prototype.array = function () {
+        var elements = [];
+        if (!this.check(tokenType_1["default"].RIGHT_SQR)) {
+            do {
+                if (elements.length >= 255) {
+                    this.error(this.peek(), "Cannot have more than 255 elements.");
+                }
+                elements.push(this.expression());
+            } while (this.match(tokenType_1["default"].COMMA));
+        }
+        var bracket = this.consume(tokenType_1["default"].RIGHT_SQR, "Expect ']' after array elements.");
+        return new Expr.ArrayLiteral(elements, bracket);
     };
     /**
      * Generalize the binary operators

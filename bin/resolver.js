@@ -80,15 +80,20 @@ var Resolver = /** @class */ (function () {
         }
         this.resolveLocal(expr, expr.keyword);
     };
-    Resolver.prototype.visitIndexExpr = function (expr) {
-        this.resolve(expr.callee);
+    Resolver.prototype.visitIndexGetExpr = function (expr) {
+        this.resolve(expr.indexee);
         this.resolve(expr.index);
     };
     Resolver.prototype.visitArrayLiteralExpr = function (expr) {
-        for (var _i = 0, _a = expr.values; _i < _a.length; _i++) {
+        for (var _i = 0, _a = expr.elements; _i < _a.length; _i++) {
             var value = _a[_i];
             this.resolve(value);
         }
+    };
+    Resolver.prototype.visitIndexSetExpr = function (expr) {
+        this.resolve(expr.indexee);
+        this.resolve(expr.index);
+        this.resolve(expr.value);
     };
     //
     Resolver.prototype.visitClassStmt = function (stmt) {

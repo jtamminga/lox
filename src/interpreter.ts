@@ -219,10 +219,15 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
         return method.bind(object)
     }
 
-    visitIndexExpr(expr: Expr.Index): any {
-        let callee = this.evaluate(expr.callee)
+    visitArrayLiteralExpr(expr: Expr.ArrayLiteral): any {
+        let values = expr.elements.map(e => this.evaluate(e))
+        return new LoxArray(values)
+    }
 
-        if (!(callee instanceof LoxArray)) {
+    visitIndexGetExpr(expr: Expr.IndexGet): any {
+        let indexee = this.evaluate(expr.indexee)
+
+        if (!(indexee instanceof LoxArray)) {
             throw new RuntimeError(expr.bracket,
                 "Cannot index this expression.")
         }
@@ -234,17 +239,30 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
                 "Can only use a number to index.")
         }
 
-        return callee.elements[index]
+        if (indexee.elements[index] === undefined) {
+            return null
+        }
+
+        return indexee.elements[index]
     }
 
-    visitArrayLiteralExpr(expr: Expr.ArrayLiteral): any {
-        let values = expr.values.map(v => this.evaluate(v))
-        return new LoxArray(values)
-    }
+    visitIndexSetExpr(expr: Expr.IndexSet): any {
+        let array = this.evaluate(expr.indexee)
 
-    visitAssignArrayExpr(expr: Expr.AssignArray): any {
-        let array = this.evaluate(expr.index)
+        if (!(array instanceof LoxArray)) {
+            throw new RuntimeError(expr.bracket,
+                "Variable is not an array.")
+        }
+
+        let index = this.evaluate(expr.index)
+
+        if (typeof index != "number") {
+            throw new RuntimeError(expr.bracket,
+                "Can only use a number to index.")
+        }
+
         let value = this.evaluate(expr.value)
+        array.elements[index] = value
     }
 
     // statements
@@ -294,7 +312,11 @@ export default class Interpreter implements Expr.Visitor<any>, Stmt.Visitor<void
 
     visitPrintStmt(stmt: Stmt.Print): void {
         let value = this.evaluate(stmt.expression)
-        console.log(value.toString())
+        if (value === null) {
+            console.log("nil")
+        } else {
+            console.log(value.toString())
+        }
     }
 
     visitReturnStmt(stmt: Stmt.Return): void {

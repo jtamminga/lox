@@ -17,9 +17,9 @@ export interface Visitor<T> {
     visitSetExpr(expr: Set): T
     visitThisExpr(expr: This): T
     visitSuperExpr(expr: Super): T
-    visitIndexExpr(expr: Index): T
     visitArrayLiteralExpr(expr: ArrayLiteral): T
-    visitAssignArrayExpr(expr: AssignArray)
+    visitIndexGetExpr(expr: IndexGet): T
+    visitIndexSetExpr(expr: IndexSet): T
 }
 
 export class Binary extends Expr {
@@ -146,23 +146,6 @@ export class Call extends Expr {
     }
 }
 
-export class Index extends Expr {
-    readonly callee: Expr
-    readonly bracket: Token
-    readonly index: Expr
-
-    constructor(callee: Expr, bracket: Token, index: Expr) {
-        super()
-        this.callee = callee
-        this.bracket = bracket
-        this.index = index
-    }
-
-    accept<T>(visitor: Visitor<T>): T {
-        return visitor.visitIndexExpr(this)
-    }
-}
-
 export class Get extends Expr {
     readonly object: Expr
     readonly name: Token
@@ -224,12 +207,12 @@ export class Super extends Expr {
 }
 
 export class ArrayLiteral extends Expr {
-    readonly values: Expr[]
+    readonly elements: Expr[]
     readonly bracket: Token
 
-    constructor(values: Expr[], bracket: Token) {
+    constructor(elements: Expr[], bracket: Token) {
         super()
-        this.values = values
+        this.elements = elements
         this.bracket = bracket
     }
 
@@ -238,17 +221,38 @@ export class ArrayLiteral extends Expr {
     }
 }
 
-export class AssignArray extends Expr {
-    readonly index: Index
+export class IndexGet extends Expr {
+    readonly indexee: Expr
+    readonly bracket: Token
+    readonly index: Expr
+
+    constructor(indexee: Expr, bracket: Token, index: Expr) {
+        super()
+        this.indexee = indexee
+        this.bracket = bracket
+        this.index = index
+    }
+
+    accept<T>(visitor: Visitor<T>): T {
+        return visitor.visitIndexGetExpr(this)
+    }
+}
+
+export class IndexSet extends Expr {
+    readonly indexee: Expr
+    readonly bracket: Token
+    readonly index: Expr
     readonly value: Expr
 
-    constructor(index: Index, value: Expr) {
+    constructor(indexee: Expr, bracket: Token, index: Expr, value: Expr) {
         super()
+        this.indexee = indexee
+        this.bracket = bracket
         this.index = index
         this.value = value
     }
 
     accept<T>(visitor: Visitor<T>): T {
-        return visitor.visitAssignArrayExpr(this)
+        return visitor.visitIndexSetExpr(this)
     }
 }

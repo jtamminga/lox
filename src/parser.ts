@@ -269,8 +269,9 @@ export default class Parser {
             } else if (expr instanceof Expr.Get) {
                 let get = <Expr.Get> expr
                 return new Expr.Set(get.object, get.name, value)
-            } else if (expr instanceof Expr.Index) {
-                // return new Expr.Set(expr.callee, null, value)
+            } else if (expr instanceof Expr.IndexGet) {
+                return new Expr.IndexSet(expr, expr.bracket,
+                    expr.index, value)
             }
 
             this.error(equals, "Invalid assignment target.")
@@ -386,13 +387,13 @@ export default class Parser {
         let index = this.expression()
         let bracket = this.consume(Type.RIGHT_SQR, "Expect ']' after expression.")
 
-        return new Expr.Index(callee, bracket, index)
+        return new Expr.IndexGet(callee, bracket, index)
     }
 
     // primary -> NUMBER | STRING | "false" | "true" | "nil" | "this"
     //          | "(" expression ")" | IDENTIFIER
     //          | "super" "." IDENTIFIER
-    //          | "[" arguments? "]"
+    //          | array
     private primary(): Expr.default {
         if (this.match(Type.FALSE)) return new Expr.Literal(false)
         if (this.match(Type.TRUE)) return new Expr.Literal(true)
@@ -423,22 +424,27 @@ export default class Parser {
         }
 
         if (this.match(Type.LEFT_SQR)) {
-            let elements = []
-            if (!this.check(Type.RIGHT_SQR)) {
-                do {
-                    if (elements.length >= 255) {
-                        this.error(this.peek(), "Cannot have more than 255 elements.")
-                    }
-                    elements.push(this.expression())
-                } while (this.match(Type.COMMA))
-            }
-
-            let bracket = this.consume(Type.RIGHT_SQR, "Expect ']' after array elements.")
-
-            return new Expr.ArrayLiteral(elements, bracket)
+            return this.array()
         }
 
         throw this.error(this.peek(), "Expect expression.")
+    }
+
+    // array -> "[" arguments? "]"
+    private array(): Expr.ArrayLiteral {
+        let elements = []
+        if (!this.check(Type.RIGHT_SQR)) {
+            do {
+                if (elements.length >= 255) {
+                    this.error(this.peek(), "Cannot have more than 255 elements.")
+                }
+                elements.push(this.expression())
+            } while (this.match(Type.COMMA))
+        }
+
+        let bracket = this.consume(Type.RIGHT_SQR, "Expect ']' after array elements.")
+
+        return new Expr.ArrayLiteral(elements, bracket)
     }
 
     /**
